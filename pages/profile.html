@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Profile | STEAMTOOLS</title>
+  <meta name="description" content="Your STEAMTOOLS profile — download history, game requests, and account settings.">
   <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../modal.css">
+  <link rel="stylesheet" href="../extras.css">
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
@@ -13,23 +16,23 @@
 
 <div class="di-wrapper">
   <nav id="main-nav">
-  <a href="../index.html" class="logo">
-    <div class="logo-icon">ST</div>
-    <span class="logo-text">STEAM<span>TOOLS</span></span>
-  </a>
-  <div class="nav-sep"></div>
-    
-    <li><a href="store.html">Store</a></li>
-    <li><a href="fixes.html">Fixes</a></li>
-    <li><a href="drops.html">Drops</a></li>
-    <li><a href="request.html">Request</a></li>
-    <li><a href="profile.html" class="active">Profile</a></li>
-  
+    <a href="../index.html" class="logo">
+      <div class="logo-icon">ST</div>
+      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    </a>
     <div class="nav-sep"></div>
-    
-    <a href="#" class="btn-primary">Discord</a>
-  </div>
-</nav>
+    <ul class="nav-links">
+      <li><a href="store.html">Store</a></li>
+      <li><a href="fixes.html">Fixes</a></li>
+      <li><a href="drops.html">Drops</a></li>
+      <li><a href="request.html">Request</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
+    </ul>
+    <div class="nav-sep"></div>
+    <div class="nav-right">
+      <a href="#" class="btn-primary">Discord</a>
+    </div>
+  </nav>
 </div>
 
 <div class="subpage-wrap">
@@ -38,7 +41,7 @@
       <!-- Sidebar -->
       <aside class="profile-sidebar reveal">
         <div class="avatar-ring">
-          <img src="https://api.dicebear.com/8.x/bottts/svg?seed=VaultHunter&backgroundColor=0a0f1a" alt="Avatar">
+          <img src="https://api.dicebear.com/8.x/bottts/svg?seed=VaultHunter&backgroundColor=f4f6fd" alt="Avatar">
         </div>
         <h2>VaultHunter</h2>
         <div class="tier-badge">✦ PREMIUM MEMBER</div>
@@ -60,10 +63,30 @@
             <span class="mini-stat-label">Member</span>
           </div>
         </div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(200,215,250,0.3)">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:8px">
+            <span style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80"></span>
+            <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--text-400)">ONLINE</span>
+          </div>
+          <p style="font-size:11px;color:var(--text-400);font-family:var(--font-mono);letter-spacing:0.5px">Member since Jan 2023</p>
+        </div>
       </aside>
 
       <!-- Main -->
       <div class="profile-main">
+        <!-- XP Progress -->
+        <div class="profile-panel reveal reveal-delay-1">
+          <p class="panel-title">// LEVEL PROGRESS</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-900)">Level 42</span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-400)">3,240 / 5,000 XP</span>
+          </div>
+          <div style="width:100%;height:6px;background:rgba(200,215,250,0.35);border-radius:3px;overflow:hidden">
+            <div style="width:64.8%;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:3px;transition:width 1.5s var(--ease)"></div>
+          </div>
+          <p style="font-size:11px;color:var(--text-400);margin-top:8px;font-family:var(--font-mono)">1,760 XP to Level 43</p>
+        </div>
+
         <div class="profile-panel reveal reveal-delay-1">
           <p class="panel-title">// RECENT DOWNLOADS</p>
           <div class="history-item">
@@ -92,7 +115,7 @@
           <p class="panel-title">// MY REQUESTS</p>
           <div class="history-item">
             <span class="history-game">Monster Hunter Wilds</span>
-            <span class="history-date" style="color:var(--cyan)">FULFILLED</span>
+            <span class="history-date" style="color:var(--blue)">FULFILLED</span>
           </div>
           <div class="history-item">
             <span class="history-game">Hollow Knight: Silksong</span>
@@ -100,7 +123,7 @@
           </div>
           <div class="history-item">
             <span class="history-game">Satisfactory v2</span>
-            <span class="history-date" style="color:var(--muted)">PENDING</span>
+            <span class="history-date" style="color:var(--text-400)">PENDING</span>
           </div>
         </div>
 
@@ -112,11 +135,19 @@
           </div>
           <div class="history-item">
             <span class="history-game">Membership Tier</span>
-            <span class="history-date" style="color:var(--gold)">Premium</span>
+            <span class="history-date" style="color:var(--purple)">Premium</span>
           </div>
           <div class="history-item">
             <span class="history-game">Discord Linked</span>
             <span class="history-date" style="color:#4ade80">Connected</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Notifications</span>
+            <span class="history-date" style="color:#4ade80">Enabled</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">API Key</span>
+            <span class="history-date" style="font-size:10px">mg_89fa•••4499</span>
           </div>
         </div>
       </div>
@@ -128,6 +159,7 @@
   <div class="container">
     <div class="footer-bottom">
       <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
     </div>
   </div>
 </footer>

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Store | STEAMTOOLS</title>
   <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../modal.css">
+  <link rel="stylesheet" href="../extras.css">
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
@@ -13,24 +15,24 @@
 
 <div class="di-wrapper">
   <nav id="main-nav">
-  <a href="../index.html" class="logo">
-    <div class="logo-icon">ST</div>
-    <span class="logo-text">STEAM<span>TOOLS</span></span>
-  </a>
-  <div class="nav-sep"></div>
-    
-    <li><a href="store.html" class="active">Store</a></li>
-    <li><a href="fixes.html">Fixes</a></li>
-    <li><a href="drops.html">Drops</a></li>
-    <li><a href="request.html">Request</a></li>
-    <li><a href="profile.html">Profile</a></li>
-  
+    <a href="../index.html" class="logo">
+      <div class="logo-icon">ST</div>
+      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    </a>
     <div class="nav-sep"></div>
-    
-    <a href="profile.html" class="btn-ghost">Sign In</a>
-    <a href="#" class="btn-primary">Discord</a>
-  </div>
-</nav>
+    <ul class="nav-links">
+      <li><a href="store.html" class="active">Store</a></li>
+      <li><a href="fixes.html">Fixes</a></li>
+      <li><a href="drops.html">Drops</a></li>
+      <li><a href="request.html">Request</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <div class="nav-sep"></div>
+    <div class="nav-right">
+      <a href="profile.html" class="btn-ghost">Sign In</a>
+      <a href="#" class="btn-primary">Discord</a>
+    </div>
+  </nav>
 </div>
 
 <div class="subpage-wrap">
@@ -38,7 +40,7 @@
     <div class="page-hero reveal">
       <span class="page-hero-tag">// THE COLLECTION</span>
       <h1>THE VAULT <span class="text-gradient">STORE</span></h1>
-      <p>Access the largest collection of verified Steam manifests. Hundreds of titles, always growing.</p>
+      <p>Access the largest collection of verified Steam manifests. Powered by GameGen API with real-time generation.</p>
     </div>
 
     <div class="store-controls reveal">
@@ -51,7 +53,28 @@
       </div>
     </div>
 
+    <!-- Featured Banner -->
+    <div class="featured-banner reveal" id="featured-banner">
+      <div class="featured-img">
+        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg" alt="Featured">
+        <div class="featured-overlay">
+          <span class="game-status-badge">FEATURED</span>
+          <h2>Elden Ring</h2>
+          <p>AAA · RPG — Rise, Tarnished, and be guided by grace.</p>
+          <button class="btn-hero" onclick="openGameModal('1245620')">View Details ↗</button>
+        </div>
+      </div>
+    </div>
+
     <div class="game-grid" id="store-grid"></div>
+
+    <!-- Load more -->
+    <div class="load-more-wrap reveal" style="text-align:center;margin-top:40px">
+      <div class="api-status" id="api-status">
+        <span class="tag-dot"></span>
+        <span>GameGen API · Connected</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -59,47 +82,127 @@
   <div class="container">
     <div class="footer-bottom">
       <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
     </div>
   </div>
 </footer>
 
 <script>
-const vaultData = [
-  { id: '271590',  name: 'Grand Theft Auto V',     category: 'aaa',      tag: 'AAA · Action' },
-  { id: '1174180', name: 'Red Dead Redemption 2',  category: 'aaa',      tag: 'AAA · Adventure' },
-  { id: '1245620', name: 'Elden Ring',              category: 'aaa',      tag: 'AAA · RPG' },
-  { id: '1091500', name: 'Cyberpunk 2077',          category: 'aaa',      tag: 'AAA · Sci-Fi' },
-  { id: '252490',  name: 'Rust',                    category: 'survival', tag: 'Survival · PVP' },
-  { id: '1086940', name: "Baldur's Gate 3",         category: 'aaa',      tag: 'AAA · RPG' },
-  { id: '264710',  name: 'Subnautica',              category: 'survival', tag: 'Survival · Indie' },
-  { id: '1145360', name: 'Hades',                   category: 'indie',    tag: 'Indie · Roguelike' },
-  { id: '413150',  name: 'Stardew Valley',          category: 'indie',    tag: 'Indie · RPG' },
-  { id: '311690',  name: 'Gunpoint',                category: 'indie',    tag: 'Indie · Stealth' }
+const GAMEGEN_KEY = 'mg_89fab80a0e6c4949b0c169de799f4499';
+const GAMEGEN_BASE = 'https://gamegen.lol/api/' + GAMEGEN_KEY;
+const STEAM_IMG = 'https://cdn.cloudflare.steamstatic.com/steam/apps';
+
+const CATALOG = [
+  { id:'271590',  name:'Grand Theft Auto V',     cat:'aaa',      tag:'AAA · Action' },
+  { id:'1174180', name:'Red Dead Redemption 2',  cat:'aaa',      tag:'AAA · Adventure' },
+  { id:'1245620', name:'Elden Ring',              cat:'aaa',      tag:'AAA · RPG' },
+  { id:'1091500', name:'Cyberpunk 2077',          cat:'aaa',      tag:'AAA · Sci-Fi' },
+  { id:'252490',  name:'Rust',                    cat:'survival', tag:'Survival · PVP' },
+  { id:'1086940', name:"Baldur's Gate 3",         cat:'aaa',      tag:'AAA · RPG' },
+  { id:'264710',  name:'Subnautica',              cat:'survival', tag:'Survival · Indie' },
+  { id:'1145360', name:'Hades',                   cat:'indie',    tag:'Indie · Roguelike' },
+  { id:'413150',  name:'Stardew Valley',          cat:'indie',    tag:'Indie · RPG' },
+  { id:'311690',  name:'Gunpoint',                cat:'indie',    tag:'Indie · Stealth' },
+  { id:'570',     name:'Dota 2',                  cat:'aaa',      tag:'AAA · MOBA' },
+  { id:'730',     name:'Counter-Strike 2',        cat:'aaa',      tag:'AAA · FPS' },
+  { id:'892970',  name:'Valheim',                 cat:'survival', tag:'Survival · Co-op' },
+  { id:'1203220', name:'NARAKA: BLADEPOINT',      cat:'aaa',      tag:'AAA · Battle Royale' },
+  { id:'1172470', name:'Apex Legends',            cat:'aaa',      tag:'AAA · Battle Royale' },
+  { id:'812140',  name:'Assassins Creed Odyssey', cat:'aaa',      tag:'AAA · RPG' },
+  { id:'553850',  name:'HELLDIVERS 2',            cat:'aaa',      tag:'AAA · Co-op' },
+  { id:'814380',  name:'Sekiro',                  cat:'aaa',      tag:'AAA · Action' },
 ];
+
+const steamCache = {};
+async function fetchSteamDetails(appId) {
+  if (steamCache[appId]) return steamCache[appId];
+  try {
+    const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}`);
+    const j = await r.json();
+    if (j[appId]?.success) { steamCache[appId] = j[appId].data; return j[appId].data; }
+  } catch(e) {}
+  return null;
+}
+async function fetchGameGenLink(appId) {
+  try {
+    const r = await fetch(`${GAMEGEN_BASE}/generate/${appId}`);
+    const j = await r.json();
+    if (j.success && j.manifest) return j.manifest.downloadUrl;
+  } catch(e) {}
+  return null;
+}
 
 let currentFilter = 'all';
 let currentSearch = '';
 
 function renderStore() {
   const grid = document.getElementById('store-grid');
-  let data = currentFilter === 'all' ? vaultData : vaultData.filter(g => g.category === currentFilter);
+  let data = currentFilter === 'all' ? CATALOG : CATALOG.filter(g => g.cat === currentFilter);
   if (currentSearch) data = data.filter(g => g.name.toLowerCase().includes(currentSearch.toLowerCase()));
   grid.innerHTML = '';
   data.forEach((game, i) => {
-    const imgUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.id}/library_600x900_2x.jpg`;
     const card = document.createElement('div');
     card.className = 'game-card reveal visible';
     card.style.transitionDelay = `${i * 0.04}s`;
+    card.onclick = () => openGameModal(game.id);
     card.innerHTML = `
       <div class="game-img">
-        <img src="${imgUrl}" alt="${game.name}" loading="lazy" onerror="this.src='https://placehold.co/300x450/080c14/5e7a99?text=${encodeURIComponent(game.name)}'">
+        <img src="${STEAM_IMG}/${game.id}/library_600x900_2x.jpg" alt="${game.name}" loading="lazy"
+             onerror="this.src='https://placehold.co/300x450/0a0f1a/6b9ef8?text=${encodeURIComponent(game.name)}'">
         <span class="game-status-badge">VERIFIED</span>
-        <div class="game-overlay"><button class="btn-get">Get Game ↗</button></div>
+        <div class="game-overlay"><button class="btn-get">View Details ↗</button></div>
       </div>
-      <div class="game-info"><h3>${game.name}</h3><span class="game-tag">${game.tag}</span></div>
-    `;
+      <div class="game-info"><h3>${game.name}</h3><span class="game-tag">${game.tag}</span></div>`;
     grid.appendChild(card);
   });
+}
+
+async function openGameModal(appId) {
+  const game = CATALOG.find(g => g.id === appId);
+  if (!game) return;
+  document.querySelector('.game-modal-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'game-modal-overlay';
+  overlay.innerHTML = `<div class="game-modal">
+    <button class="modal-close" onclick="this.closest('.game-modal-overlay').remove()">✕</button>
+    <div class="modal-hero">
+      <img src="${STEAM_IMG}/${appId}/header.jpg" alt="${game.name}">
+      <div class="modal-hero-gradient"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-main">
+        <h1>${game.name}</h1>
+        <span class="game-tag" style="margin-bottom:16px;display:inline-block">${game.tag}</span>
+        <div class="modal-desc"><p>Loading description...</p></div>
+        <div class="modal-screens"><h3>Screenshots</h3><div class="screens-row" id="screens-${appId}">Loading...</div></div>
+      </div>
+      <div class="modal-sidebar">
+        <button class="btn-hero btn-download" id="dl-btn-${appId}" disabled>Generating Link...</button>
+        <div class="modal-meta" id="meta-${appId}">Loading info...</div>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  const details = await fetchSteamDetails(appId);
+  if (details) {
+    overlay.querySelector('.modal-desc').innerHTML = `<p>${details.short_description || 'No description.'}</p>`;
+    const sc = document.getElementById(`screens-${appId}`);
+    sc.innerHTML = (details.screenshots||[]).slice(0,6).map(s =>
+      `<img src="${s.path_thumbnail}" alt="Screenshot" class="screen-thumb">`
+    ).join('') || '<p>No screenshots</p>';
+    const m = document.getElementById(`meta-${appId}`);
+    m.innerHTML = `
+      <div class="meta-row"><span>Developer</span><span>${(details.developers||['N/A']).join(', ')}</span></div>
+      <div class="meta-row"><span>Publisher</span><span>${(details.publishers||['N/A']).join(', ')}</span></div>
+      <div class="meta-row"><span>Genre</span><span>${(details.genres||[]).map(g=>g.description).join(', ')||'N/A'}</span></div>
+      <div class="meta-row"><span>Release</span><span>${details.release_date?.date||'N/A'}</span></div>`;
+  }
+  const dlBtn = document.getElementById(`dl-btn-${appId}`);
+  const dlUrl = await fetchGameGenLink(appId);
+  if (dlUrl) { dlBtn.disabled=false; dlBtn.textContent='⬇ Get Game'; dlBtn.onclick=()=>window.open(dlUrl,'_blank'); }
+  else { dlBtn.textContent='⚠ Unavailable'; }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -109,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentFilter = btn.getAttribute('data-filter');
+      currentFilter = btn.dataset.filter;
       renderStore();
     });
   });

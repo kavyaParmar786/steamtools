@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fixes & Patches | STEAMTOOLS</title>
+  <meta name="description" content="Performance patches, optimization guides, and community fixes for common game issues.">
   <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../modal.css">
+  <link rel="stylesheet" href="../extras.css">
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
@@ -13,24 +16,24 @@
 
 <div class="di-wrapper">
   <nav id="main-nav">
-  <a href="../index.html" class="logo">
-    <div class="logo-icon">ST</div>
-    <span class="logo-text">STEAM<span>TOOLS</span></span>
-  </a>
-  <div class="nav-sep"></div>
-    
-    <li><a href="store.html">Store</a></li>
-    <li><a href="fixes.html" class="active">Fixes</a></li>
-    <li><a href="drops.html">Drops</a></li>
-    <li><a href="request.html">Request</a></li>
-    <li><a href="profile.html">Profile</a></li>
-  
+    <a href="../index.html" class="logo">
+      <div class="logo-icon">ST</div>
+      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    </a>
     <div class="nav-sep"></div>
-    
-    <a href="profile.html" class="btn-ghost">Sign In</a>
-    <a href="#" class="btn-primary">Discord</a>
-  </div>
-</nav>
+    <ul class="nav-links">
+      <li><a href="store.html">Store</a></li>
+      <li><a href="fixes.html" class="active">Fixes</a></li>
+      <li><a href="drops.html">Drops</a></li>
+      <li><a href="request.html">Request</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <div class="nav-sep"></div>
+    <div class="nav-right">
+      <a href="profile.html" class="btn-ghost">Sign In</a>
+      <a href="#" class="btn-primary">Discord</a>
+    </div>
+  </nav>
 </div>
 
 <div class="subpage-wrap">
@@ -41,53 +44,18 @@
       <p>Performance patches, optimization guides, and community fixes for common game issues.</p>
     </div>
 
-    <div class="fixes-grid">
-      <div class="fix-card reveal reveal-delay-1">
-        <div class="fix-header">
-          <h3>DirectX 12 Optimization Patch</h3>
-          <span class="badge-new">NEW</span>
-        </div>
-        <p>Improves GPU utilization on NVIDIA 30/40-series and AMD RDNA2+ cards. Resolves shader compilation stuttering.</p>
-        <button class="btn-apply">Apply Fix</button>
-      </div>
-      <div class="fix-card reveal reveal-delay-2">
-        <div class="fix-header">
-          <h3>Elden Ring 60 FPS Patch</h3>
-          <span class="badge-new">HOT</span>
-        </div>
-        <p>Community framerate unlocker with proper frametime management for smooth high-refresh-rate gameplay.</p>
-        <button class="btn-apply">Apply Fix</button>
-      </div>
-      <div class="fix-card reveal reveal-delay-3">
-        <div class="fix-header">
-          <h3>Cyberpunk 2077 Memory Leak Fix</h3>
-        </div>
-        <p>Resolves crash-on-extended-play on Intel 12th/13th gen processors. Stable for sessions over 3 hours.</p>
-        <button class="btn-apply">Apply Fix</button>
-      </div>
-      <div class="fix-card reveal reveal-delay-1">
-        <div class="fix-header">
-          <h3>RDR2 Vulkan Crash Fix</h3>
-        </div>
-        <p>Patches the Vulkan backend crash triggered on AMD GPUs when entering dense foliage areas.</p>
-        <button class="btn-apply">Apply Fix</button>
-      </div>
-      <div class="fix-card reveal reveal-delay-2">
-        <div class="fix-header">
-          <h3>Baldur's Gate 3 Save Repair</h3>
-        </div>
-        <p>Fixes corrupted save files caused by the Act 2 crossfade bug. Restores progress without rollback.</p>
-        <button class="btn-apply">Apply Fix</button>
-      </div>
-      <div class="fix-card reveal reveal-delay-3">
-        <div class="fix-header">
-          <h3>Universal Audio Fix</h3>
-          <span class="badge-new">NEW</span>
-        </div>
-        <p>Restores surround sound output for games using deprecated XAudio2 on Windows 11 22H2+.</p>
-        <button class="btn-apply">Apply Fix</button>
+    <!-- Search -->
+    <div class="store-controls reveal" style="margin-bottom:24px">
+      <input type="text" id="fix-search" placeholder="🔍  Search fixes..." style="flex:1;min-width:220px;padding:11px 18px;font-size:13.5px;font-family:var(--font-body);color:var(--text-900);background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.90);outline:none">
+      <div class="filter-strip">
+        <button class="filter-btn active" data-cat="all">All</button>
+        <button class="filter-btn" data-cat="performance">Performance</button>
+        <button class="filter-btn" data-cat="crash">Crash Fix</button>
+        <button class="filter-btn" data-cat="audio">Audio</button>
       </div>
     </div>
+
+    <div class="fixes-grid" id="fixes-grid"></div>
   </div>
 </div>
 
@@ -95,10 +63,123 @@
   <div class="container">
     <div class="footer-bottom">
       <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
     </div>
   </div>
 </footer>
 
+<script>
+const fixes = [
+  {
+    title: 'DirectX 12 Optimization Patch',
+    desc: 'Improves GPU utilization on NVIDIA 30/40-series and AMD RDNA2+ cards. Resolves shader compilation stuttering.',
+    badge: 'NEW', cat: 'performance',
+    game: 'Universal', version: 'v3.1'
+  },
+  {
+    title: 'Elden Ring 60 FPS Unlock',
+    desc: 'Community framerate unlocker with proper frametime management for smooth high-refresh-rate gameplay.',
+    badge: 'HOT', cat: 'performance',
+    game: 'Elden Ring', version: 'v2.4'
+  },
+  {
+    title: 'Cyberpunk 2077 Memory Leak Fix',
+    desc: 'Resolves crash-on-extended-play on Intel 12th/13th gen processors. Stable for sessions over 3 hours.',
+    badge: '', cat: 'crash',
+    game: 'Cyberpunk 2077', version: 'v1.8'
+  },
+  {
+    title: 'RDR2 Vulkan Crash Fix',
+    desc: 'Patches the Vulkan backend crash triggered on AMD GPUs when entering dense foliage areas.',
+    badge: '', cat: 'crash',
+    game: 'Red Dead Redemption 2', version: 'v2.0'
+  },
+  {
+    title: "Baldur's Gate 3 Save Repair",
+    desc: 'Fixes corrupted save files caused by the Act 2 crossfade bug. Restores progress without rollback.',
+    badge: 'VERIFIED', cat: 'crash',
+    game: "Baldur's Gate 3", version: 'v1.3'
+  },
+  {
+    title: 'Universal Audio Fix',
+    desc: 'Restores surround sound output for games using deprecated XAudio2 on Windows 11 22H2+.',
+    badge: 'NEW', cat: 'audio',
+    game: 'Universal', version: 'v4.0'
+  },
+  {
+    title: 'Rust Anti-Stutter Patch',
+    desc: 'Eliminates micro-stuttering in Rust by optimizing garbage collection and asset streaming pipeline.',
+    badge: 'HOT', cat: 'performance',
+    game: 'Rust', version: 'v1.6'
+  },
+  {
+    title: 'HELLDIVERS 2 Crash-on-Join Fix',
+    desc: 'Resolves the frequent crash when joining multiplayer sessions via quickplay. Patches network handshake timeout.',
+    badge: 'NEW', cat: 'crash',
+    game: 'HELLDIVERS 2', version: 'v1.1'
+  },
+  {
+    title: 'Valheim Audio Desync Fix',
+    desc: 'Fixes positional audio desyncing after extended play sessions and resolves echo in underground biomes.',
+    badge: '', cat: 'audio',
+    game: 'Valheim', version: 'v2.2'
+  },
+];
+
+let currentCat = 'all';
+let searchTerm = '';
+
+function renderFixes() {
+  const grid = document.getElementById('fixes-grid');
+  let data = currentCat === 'all' ? fixes : fixes.filter(f => f.cat === currentCat);
+  if (searchTerm) data = data.filter(f => f.title.toLowerCase().includes(searchTerm) || f.game.toLowerCase().includes(searchTerm));
+  
+  grid.innerHTML = data.map((f, i) => `
+    <div class="fix-card reveal visible" style="transition-delay:${i * 0.05}s">
+      <div class="fix-header">
+        <h3>${f.title}</h3>
+        ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;padding:3px 10px;background:var(--blue-dim);border:1px solid rgba(107,158,248,0.2);border-radius:6px;color:var(--blue)">${f.game}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;padding:3px 10px;background:var(--purple-dim);border:1px solid rgba(167,139,250,0.2);border-radius:6px;color:var(--purple)">${f.version}</span>
+      </div>
+      <p>${f.desc}</p>
+      <button class="btn-apply" onclick="applyFix(this)">Apply Fix</button>
+    </div>
+  `).join('');
+}
+
+function applyFix(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Applying...';
+  btn.style.background = 'linear-gradient(135deg, var(--blue), var(--purple))';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'transparent';
+  setTimeout(() => {
+    btn.textContent = '✓ Applied';
+    btn.style.opacity = '0.7';
+  }, 1500);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderFixes();
+  
+  document.getElementById('fix-search').addEventListener('input', e => {
+    searchTerm = e.target.value.toLowerCase();
+    renderFixes();
+  });
+  
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat;
+      renderFixes();
+    });
+  });
+});
+</script>
 <script src="../shared.js"></script>
 </body>
 </html>

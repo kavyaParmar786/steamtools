@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Request a Game | STEAMTOOLS</title>
+  <meta name="description" content="Submit a game request and our team will add it to the STEAMTOOLS vault.">
   <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../modal.css">
+  <link rel="stylesheet" href="../extras.css">
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
@@ -13,24 +16,24 @@
 
 <div class="di-wrapper">
   <nav id="main-nav">
-  <a href="../index.html" class="logo">
-    <div class="logo-icon">ST</div>
-    <span class="logo-text">STEAM<span>TOOLS</span></span>
-  </a>
-  <div class="nav-sep"></div>
-    
-    <li><a href="store.html">Store</a></li>
-    <li><a href="fixes.html">Fixes</a></li>
-    <li><a href="drops.html">Drops</a></li>
-    <li><a href="request.html" class="active">Request</a></li>
-    <li><a href="profile.html">Profile</a></li>
-  
+    <a href="../index.html" class="logo">
+      <div class="logo-icon">ST</div>
+      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    </a>
     <div class="nav-sep"></div>
-    
-    <a href="profile.html" class="btn-ghost">Sign In</a>
-    <a href="#" class="btn-primary">Discord</a>
-  </div>
-</nav>
+    <ul class="nav-links">
+      <li><a href="store.html">Store</a></li>
+      <li><a href="fixes.html">Fixes</a></li>
+      <li><a href="drops.html">Drops</a></li>
+      <li><a href="request.html" class="active">Request</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <div class="nav-sep"></div>
+    <div class="nav-right">
+      <a href="profile.html" class="btn-ghost">Sign In</a>
+      <a href="#" class="btn-primary">Discord</a>
+    </div>
+  </nav>
 </div>
 
 <div class="subpage-wrap">
@@ -64,20 +67,39 @@
               <input class="t-input" type="text" id="req-id" placeholder="e.g. 1091500">
             </div>
             <div class="input-row">
+              <label>PRIORITY</label>
+              <select class="t-input" id="req-priority" style="appearance:none;cursor:pointer">
+                <option value="normal">Normal</option>
+                <option value="high">High — Popular Request</option>
+                <option value="urgent">Urgent — New Release</option>
+              </select>
+            </div>
+            <div class="input-row">
               <label>NOTES (OPTIONAL)</label>
               <input class="t-input" type="text" id="req-notes" placeholder="e.g. include DLC, specific version...">
             </div>
-            <button class="btn-hero" id="submit-req" style="margin-top:0.5rem">
+            <button class="btn-hero" id="submit-req" style="margin-top:0.5rem;width:100%;justify-content:center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               TRANSMIT REQUEST
             </button>
           </div>
           <div id="req-success" style="display:none;padding:2rem 0;text-align:center">
-            <p class="cmd-line" style="color:var(--cyan);font-size:1rem">&gt; REQUEST RECEIVED ✓</p>
-            <p style="color:var(--muted);margin-top:1rem;font-family:var(--font-mono);font-size:0.8rem">Your request has been queued. Check Discord for updates.</p>
+            <div style="font-size:48px;margin-bottom:16px">✓</div>
+            <p class="cmd-line" style="color:var(--blue);font-size:1rem">&gt; REQUEST RECEIVED</p>
+            <p style="color:var(--text-400);margin-top:1rem;font-family:var(--font-mono);font-size:0.8rem">Your request has been queued. Check Discord for updates.</p>
+            <p style="color:var(--text-400);margin-top:0.5rem;font-family:var(--font-mono);font-size:0.75rem" id="req-ticket-id"></p>
+            <button class="btn-hero-outline" style="margin-top:24px;font-size:11px;padding:10px 24px" onclick="resetForm()">Submit Another</button>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Recent Requests Feed -->
+    <div style="max-width:600px;margin:48px auto 0">
+      <h3 style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-900);margin-bottom:20px">
+        <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--blue);display:block;margin-bottom:8px;opacity:0.75">// RECENT COMMUNITY REQUESTS</span>
+      </h3>
+      <div class="drops-feed" id="recent-requests"></div>
     </div>
   </div>
 </div>
@@ -86,19 +108,51 @@
   <div class="container">
     <div class="footer-bottom">
       <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
     </div>
   </div>
 </footer>
 
 <script>
+const recentReqs = [
+  { name: 'Monster Hunter Wilds', status: 'FULFILLED', color: 'var(--blue)' },
+  { name: 'Hollow Knight: Silksong', status: 'IN QUEUE', color: '#4ade80' },
+  { name: 'Kingdom Come: Deliverance II', status: 'PROCESSING', color: 'var(--cyan)' },
+  { name: 'Satisfactory v2', status: 'PENDING', color: 'var(--text-400)' },
+  { name: 'Avowed', status: 'IN QUEUE', color: '#4ade80' },
+];
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Render recent requests
+  const feed = document.getElementById('recent-requests');
+  recentReqs.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = `drop-item reveal visible`;
+    el.style.transitionDelay = `${i * 0.08}s`;
+    el.innerHTML = `
+      <div class="drop-info"><h3>${r.name}</h3></div>
+      <span class="drop-badge" style="color:${r.color};border-color:${r.color}30;background:${r.color}12">${r.status}</span>`;
+    feed.appendChild(el);
+  });
+
+  // Submit handler
   document.getElementById('submit-req').addEventListener('click', () => {
     const title = document.getElementById('req-title').value.trim();
     if (!title) { document.getElementById('req-title').focus(); return; }
+    const ticketId = 'ST-' + Date.now().toString(36).toUpperCase();
     document.getElementById('request-form').style.display = 'none';
     document.getElementById('req-success').style.display = 'block';
+    document.getElementById('req-ticket-id').textContent = `Ticket ID: ${ticketId}`;
   });
 });
+
+function resetForm() {
+  document.getElementById('request-form').style.display = 'block';
+  document.getElementById('req-success').style.display = 'none';
+  document.getElementById('req-title').value = '';
+  document.getElementById('req-id').value = '';
+  document.getElementById('req-notes').value = '';
+}
 </script>
 <script src="../shared.js"></script>
 </body>

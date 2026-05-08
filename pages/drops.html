@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Latest Drops | STEAMTOOLS</title>
   <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../modal.css">
+  <link rel="stylesheet" href="../extras.css">
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
@@ -38,51 +40,10 @@
     <div class="page-hero reveal">
       <span class="page-hero-tag">// REAL-TIME FEED</span>
       <h1>LATEST <span class="text-gradient">DROPS</span></h1>
-      <p>Live feed of the newest additions to the vault. Updated daily by the community.</p>
+      <p>Live feed of the newest additions to the vault. Manifests generated via GameGen API.</p>
     </div>
 
-    <div class="drops-feed" id="drops-feed">
-      <div class="drop-item reveal reveal-delay-1">
-        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
-        <div class="drop-info">
-          <h3>Grand Theft Auto VI</h3>
-          <span>MAY 08, 2026 · AAA RELEASE</span>
-        </div>
-        <span class="drop-badge">NEW</span>
-      </div>
-      <div class="drop-item reveal reveal-delay-2">
-        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
-        <div class="drop-info">
-          <h3>Hollow Knight: Silksong</h3>
-          <span>MAY 06, 2026 · INDIE · ACTION</span>
-        </div>
-        <span class="drop-badge">HOT</span>
-      </div>
-      <div class="drop-item reveal reveal-delay-3">
-        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
-        <div class="drop-info">
-          <h3>Monster Hunter Wilds</h3>
-          <span>MAY 03, 2026 · AAA · RPG</span>
-        </div>
-        <span class="drop-badge">NEW</span>
-      </div>
-      <div class="drop-item reveal">
-        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
-        <div class="drop-info">
-          <h3>Hades II — Early Access</h3>
-          <span>APR 29, 2026 · INDIE · ROGUELIKE</span>
-        </div>
-        <span class="drop-badge">VERIFIED</span>
-      </div>
-      <div class="drop-item reveal">
-        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/413150/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
-        <div class="drop-info">
-          <h3>Satisfactory v1.1 Update</h3>
-          <span>APR 25, 2026 · INDIE · SIMULATION</span>
-        </div>
-        <span class="drop-badge">UPDATED</span>
-      </div>
-    </div>
+    <div class="drops-feed" id="drops-feed"></div>
   </div>
 </div>
 
@@ -95,6 +56,36 @@
   </div>
 </footer>
 
+<script>
+const STEAM_IMG = 'https://cdn.cloudflare.steamstatic.com/steam/apps';
+const drops = [
+  { id:'1091500', name:'Cyberpunk 2077 — Phantom Liberty', date:'MAY 08, 2026', tag:'AAA · SCI-FI',  badge:'NEW' },
+  { id:'553850',  name:'HELLDIVERS 2',                     date:'MAY 07, 2026', tag:'AAA · CO-OP',   badge:'HOT' },
+  { id:'1245620', name:'Elden Ring — Shadow of the Erdtree',date:'MAY 05, 2026',tag:'AAA · RPG',     badge:'NEW' },
+  { id:'814380',  name:'Sekiro: Shadows Die Twice',        date:'MAY 03, 2026', tag:'AAA · ACTION',  badge:'VERIFIED' },
+  { id:'1086940', name:"Baldur's Gate 3 — Patch 8",        date:'APR 30, 2026', tag:'AAA · RPG',     badge:'UPDATED' },
+  { id:'892970',  name:'Valheim — Ashlands Update',        date:'APR 28, 2026', tag:'SURVIVAL',      badge:'UPDATED' },
+  { id:'1145360', name:'Hades II — Early Access',          date:'APR 25, 2026', tag:'INDIE · ROGUE', badge:'NEW' },
+  { id:'413150',  name:'Stardew Valley 1.6',               date:'APR 22, 2026', tag:'INDIE · RPG',   badge:'VERIFIED' },
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  const feed = document.getElementById('drops-feed');
+  drops.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = `drop-item reveal ${i<3?'reveal-delay-'+(i+1):''}`;
+    el.innerHTML = `
+      <img class="drop-thumb" src="${STEAM_IMG}/${d.id}/library_600x900_2x.jpg"
+           onerror="this.style.display='none'" alt="">
+      <div class="drop-info">
+        <h3>${d.name}</h3>
+        <span>${d.date} · ${d.tag}</span>
+      </div>
+      <span class="drop-badge">${d.badge}</span>`;
+    feed.appendChild(el);
+  });
+});
+</script>
 <script src="../shared.js"></script>
 </body>
 </html>
