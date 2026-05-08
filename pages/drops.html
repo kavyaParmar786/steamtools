@@ -11,23 +11,27 @@
 <div class="cursor-dot"></div>
 <div class="cursor-ring"></div>
 
-<nav>
-  <a href="../index.html" class="logo">
-    <div class="logo-icon">ST</div>
-    <span class="logo-text">STEAM<span>TOOLS</span></span>
-  </a>
-  <ul class="nav-links">
-    <li><a href="store.html">Store</a></li>
-    <li><a href="fixes.html">Fixes</a></li>
-    <li><a href="drops.html" class="active">Drops</a></li>
-    <li><a href="request.html">Request</a></li>
-    <li><a href="profile.html">Profile</a></li>
-  </ul>
-  <div class="nav-right">
-    <a href="profile.html" class="btn-ghost">Sign In</a>
-    <a href="#" class="btn-primary">Discord</a>
-  </div>
-</nav>
+<div class="di-wrapper">
+  <nav id="main-nav">
+    <a href="../index.html" class="logo">
+      <div class="logo-icon">ST</div>
+      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    </a>
+    <div class="nav-sep"></div>
+    <ul class="nav-links">
+      <li><a href="store.html">Store</a></li>
+      <li><a href="fixes.html">Fixes</a></li>
+      <li><a href="drops.html" class="active">Drops</a></li>
+      <li><a href="request.html">Request</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <div class="nav-sep"></div>
+    <div class="nav-right">
+      <a href="profile.html" class="btn-ghost">Sign In</a>
+      <a href="#" class="btn-primary">Discord</a>
+    </div>
+  </nav>
+</div>
 
 <div class="subpage-wrap">
   <div class="container">
@@ -39,44 +43,44 @@
 
     <div class="drops-feed" id="drops-feed">
       <div class="drop-item reveal reveal-delay-1">
-        <div class="drop-date">MAY 08, 2026</div>
-        <div class="drop-card">
+        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
+        <div class="drop-info">
           <h3>Grand Theft Auto VI</h3>
-          <p>The highly anticipated release. Now indexed in the vault with full content.</p>
-          <span class="drop-cat">AAA RELEASE</span>
+          <span>MAY 08, 2026 · AAA RELEASE</span>
         </div>
+        <span class="drop-badge">NEW</span>
       </div>
       <div class="drop-item reveal reveal-delay-2">
-        <div class="drop-date">MAY 06, 2026</div>
-        <div class="drop-card">
+        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
+        <div class="drop-info">
           <h3>Hollow Knight: Silksong</h3>
-          <p>The long-awaited sequel is finally here. Added to the indie collection.</p>
-          <span class="drop-cat">INDIE · ACTION</span>
+          <span>MAY 06, 2026 · INDIE · ACTION</span>
         </div>
+        <span class="drop-badge">HOT</span>
       </div>
       <div class="drop-item reveal reveal-delay-3">
-        <div class="drop-date">MAY 03, 2026</div>
-        <div class="drop-card">
+        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
+        <div class="drop-info">
           <h3>Monster Hunter Wilds</h3>
-          <p>Full base game plus all current DLC included in this drop.</p>
-          <span class="drop-cat">AAA · RPG</span>
+          <span>MAY 03, 2026 · AAA · RPG</span>
         </div>
+        <span class="drop-badge">NEW</span>
       </div>
       <div class="drop-item reveal">
-        <div class="drop-date">APR 29, 2026</div>
-        <div class="drop-card">
+        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
+        <div class="drop-info">
           <h3>Hades II — Early Access</h3>
-          <p>Supergiant's sequel to the roguelike hit. Now available in the vault.</p>
-          <span class="drop-cat">INDIE · ROGUELIKE</span>
+          <span>APR 29, 2026 · INDIE · ROGUELIKE</span>
         </div>
+        <span class="drop-badge">VERIFIED</span>
       </div>
       <div class="drop-item reveal">
-        <div class="drop-date">APR 25, 2026</div>
-        <div class="drop-card">
+        <img class="drop-thumb" src="https://cdn.cloudflare.steamstatic.com/steam/apps/413150/library_600x900_2x.jpg" onerror="this.style.display='none'" alt="">
+        <div class="drop-info">
           <h3>Satisfactory v1.1 Update</h3>
-          <p>Full 1.1 update patch now bundled. Includes all new content and machines.</p>
-          <span class="drop-cat">INDIE · SIMULATION</span>
+          <span>APR 25, 2026 · INDIE · SIMULATION</span>
         </div>
+        <span class="drop-badge">UPDATED</span>
       </div>
     </div>
   </div>
@@ -86,6 +90,7 @@
   <div class="container">
     <div class="footer-bottom">
       <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
     </div>
   </div>
 </footer>
