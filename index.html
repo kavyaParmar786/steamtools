@@ -1,137 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STEAMTOOLS | The Ultimate Steam Vault</title>
-    <meta name="description" content="Your #1 source for full, unlocked Steam games. AAA titles, indie gems, and verified installs. Join the ultimate gaming community.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STEAMTOOLS | The Ultimate Steam Vault</title>
+  <meta name="description" content="Your #1 source for full, unlocked Steam games. AAA titles, indie gems, and verified installs.">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="cursor-glow"></div>
-    
-    <nav>
-        <div class="logo">
-            <span class="glitch" data-text="STEAMTOOLS">STEAMTOOLS</span>
-        </div>
-        <ul class="nav-links">
-            <li><a href="pages/store.html" class="nav-item">Store</a></li>
-            <li><a href="pages/fixes.html" class="nav-item">Fixes</a></li>
-            <li><a href="pages/drops.html" class="nav-item">Drops</a></li>
-            <li><a href="pages/request.html" class="nav-item">Request</a></li>
-            <li><a href="pages/profile.html" class="nav-item">Profile</a></li>
+
+<canvas id="webgl-bg"></canvas>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<nav>
+  <a href="index.html" class="logo">
+    <div class="logo-icon">ST</div>
+    <span class="logo-text">STEAM<span>TOOLS</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="pages/store.html">Store</a></li>
+    <li><a href="pages/fixes.html">Fixes</a></li>
+    <li><a href="pages/drops.html">Drops</a></li>
+    <li><a href="pages/request.html">Request</a></li>
+    <li><a href="pages/profile.html">Profile</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="pages/profile.html" class="btn-ghost">Sign In</a>
+    <a href="#" class="btn-primary">Join Discord</a>
+  </div>
+</nav>
+
+<!-- ── HERO ───────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-bg-radial"></div>
+  <div class="hero-content">
+    <div class="hero-tag">PRO PREMIUM ACCESS · V2.0</div>
+    <h1>THE ULTIMATE<br><span class="text-gradient">STEAM VAULT</span></h1>
+    <p class="hero-sub">Why empty your wallet when you can play for free? Access 100% verified, full, unlocked Steam releases trusted by thousands.</p>
+    <div class="hero-btns">
+      <a href="#vault" class="btn-hero">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Explore Archive
+      </a>
+      <a href="#features" class="btn-hero-outline">
+        Learn More
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">500+</span>
+        <span class="stat-label">Verified Games</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">12k</span>
+        <span class="stat-label">Active Users</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">24/7</span>
+        <span class="stat-label">Support</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── FEATURES ──────────────────────────────────────── -->
+<section id="features" class="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-tag">// WHY STEAMTOOLS</span>
+      <h2 class="section-title">THE <span class="text-gradient">ADVANTAGE</span></h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon">📁</div>
+        <h3>Verified Installs</h3>
+        <p>Every game in our vault is manually tested and verified for stability and safety before being listed.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon">🤝</div>
+        <h3>Active Community</h3>
+        <p>Join thousands of gamers in our Discord for support, updates, fix guides, and general chat.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon">📥</div>
+        <h3>Game Requests</h3>
+        <p>Missing something? Our dedicated request channel lets you queue any title you want for the vault.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── VAULT ──────────────────────────────────────────── -->
+<section id="vault" class="vault">
+  <div class="container">
+    <div class="vault-header reveal">
+      <div class="section-head">
+        <span class="section-tag">// THE COLLECTION</span>
+        <h2 class="section-title">GAME <span class="text-gradient">ARCHIVE</span></h2>
+      </div>
+      <div class="filter-strip">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="aaa">AAA</button>
+        <button class="filter-btn" data-filter="indie">Indie</button>
+        <button class="filter-btn" data-filter="survival">Survival</button>
+      </div>
+    </div>
+    <div class="game-grid" id="game-archive"></div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── CTA ────────────────────────────────────────────── -->
+<section id="community" class="cta-section">
+  <div class="container">
+    <div class="cta-card reveal">
+      <h2>JOIN THE <span class="text-gradient">MOVEMENT</span></h2>
+      <p>Connect with our active gaming community. Never pay full price again.</p>
+      <div class="cta-btns">
+        <a href="#vault" class="btn-hero">Enter The Vault</a>
+        <a href="#" class="btn-discord">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+          Join Discord
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="index.html" class="logo">
+          <div class="logo-icon">ST</div>
+          <span class="logo-text">STEAM<span>TOOLS</span></span>
+        </a>
+        <p>The #1 Source for Free, Verified Steam Games.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="pages/store.html">Store</a></li>
+          <li><a href="pages/drops.html">Latest Drops</a></li>
+          <li><a href="pages/fixes.html">Fixes</a></li>
+          <li><a href="pages/request.html">Requests</a></li>
         </ul>
-        <div class="nav-actions">
-            <a href="pages/profile.html" class="btn-primary">Join Discord</a>
-        </div>
-    </nav>
+      </div>
+      <div class="footer-links">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="#">Discord Server</a></li>
+          <li><a href="pages/profile.html">Profile</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
+    </div>
+  </div>
+</footer>
 
-    <header class="hero">
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-            <div class="badge">PRO PREMIUM ACCESS</div>
-            <h1>THE ULTIMATE <span class="text-gradient">STEAM VAULT</span></h1>
-            <p>Why empty your wallet when you can play for free? Access 100% verified, full, unlocked Steam releases.</p>
-            <div class="hero-btns">
-                <a href="#vault" class="btn-main">EXPLORE ARCHIVE</a>
-                <a href="#community" class="btn-outline">LEARN MORE</a>
-            </div>
-            <div class="hero-stats">
-                <div class="stat-item">
-                    <span class="stat-num">500+</span>
-                    <span class="stat-label">Verified Games</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-num">12k</span>
-                    <span class="stat-label">Active Users</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-num">24/7</span>
-                    <span class="stat-label">Support</span>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <section id="features" class="features">
-        <div class="container">
-            <h2 class="section-title">THE <span class="text-gradient">ADVANTAGE</span></h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="icon">📁</div>
-                    <h3>Verified Installs</h3>
-                    <p>Every game in our vault is manually tested and verified for stability and safety.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">🤝</div>
-                    <h3>Active Community</h3>
-                    <p>Join thousands of gamers in our Discord for support, updates, and chat.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">📥</div>
-                    <h3>Game Requests</h3>
-                    <p>Missing something? Our dedicated channels allow you to request any title you want.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="vault" class="vault">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">GAME <span class="text-gradient">ARCHIVE</span></h2>
-                <div class="filter-btns">
-                    <button class="filter-btn active" data-filter="all">All Games</button>
-                    <button class="filter-btn" data-filter="aaa">AAA Titles</button>
-                    <button class="filter-btn" data-filter="indie">Indie Gems</button>
-                    <button class="filter-btn" data-filter="survival">Survival</button>
-                </div>
-            </div>
-
-            <div class="game-grid" id="game-archive">
-                <!-- Games will be injected here by app.js -->
-            </div>
-        </div>
-    </section>
-
-    <section id="community" class="community">
-        <div class="community-card">
-            <h2>JOIN THE <span class="text-gradient">MOVEMENT</span></h2>
-            <p>Connect with our active gaming community and never pay full price again.</p>
-            <div class="community-actions">
-                <a href="#" class="btn-primary-large">Enter The Vault</a>
-                <a href="#" class="btn-secondary-large">Join Discord</a>
-            </div>
-        </div>
-    </section>
-
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-brand">
-                    <h3>STEAMTOOLS</h3>
-                    <p>The #1 Source for Free Games.</p>
-                </div>
-                <div class="footer-links">
-                    <div class="link-group">
-                        <h4>Navigation</h4>
-                        <ul>
-                            <li><a href="#vault">Archive</a></li>
-                            <li><a href="#features">About Us</a></li>
-                            <li><a href="#community">Community</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2026 STEAMTOOLS. For educational purposes only.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="app.js"></script>
+<script src="app.js"></script>
+<script src="shared.js"></script>
 </body>
 </html>
