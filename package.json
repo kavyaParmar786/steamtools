@@ -1,0 +1,12 @@
+{
+  "name": "steamtools-vault",
+  "version": "1.0.0",
+  "description": "The Ultimate Steam Vault Website",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y live-server . --port=5500 --wait=1000"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
