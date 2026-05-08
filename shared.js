@@ -152,8 +152,8 @@ function initWebGL() {
       vec3 nebColor = mix(neb_cyan, neb_violet, swirl);
       nebColor = mix(nebColor, neb_hot, thin * 0.6);
       nebColor = mix(nebColor, neb_pink, fbm(p * 2.0 - t) * 0.4);
-      float alpha = nebula * 0.18 + thin * 0.12;
-      gl_FragColor = vec4(nebColor, alpha * 0.85);
+      float alpha = nebula * 0.45 + thin * 0.30;
+      gl_FragColor = vec4(nebColor, alpha * 0.9);
     }
   `;
 
@@ -201,7 +201,7 @@ function initWebGL() {
     velocities[i*2+1] = Math.sin(angle) * speed;
     const tier = Math.random();
     sizes[i] = tier < 0.5 ? (1.0 + Math.random() * 1.5) : tier < 0.82 ? (2.5 + Math.random() * 3.5) : (5.0 + Math.random() * 7.0);
-    alphas[i] = 0.25 + Math.random() * 0.6;
+    alphas[i] = 0.55 + Math.random() * 0.45;
     const hueCluster = [0.52, 0.55, 0.60, 0.65, 0.72, 0.78, 0.86, 0.90, 0.95];
     hues[i] = hueCluster[Math.floor(Math.random() * hueCluster.length)] + (Math.random() - 0.5) * 0.05;
   }
@@ -248,18 +248,18 @@ function initWebGL() {
   function hexVerts(cx, cy, r, thickness) { return ringVerts(cx, cy, r, thickness, 6); }
 
   const rings = [
-    { px:0.5, py:0.35, r:180, thick:1.2, speed:0.18,  hue:0.58, alpha:0.22, phase:0 },
-    { px:0.5, py:0.35, r:260, thick:0.8, speed:-0.11, hue:0.75, alpha:0.14, phase:1.1 },
-    { px:0.5, py:0.35, r:360, thick:0.5, speed:0.07,  hue:0.88, alpha:0.10, phase:2.2 },
-    { px:0.72,py:0.7,  r:120, thick:1.0, speed:-0.22, hue:0.62, alpha:0.18, phase:0.5 },
-    { px:0.22,py:0.6,  r:90,  thick:1.5, speed:0.30,  hue:0.82, alpha:0.20, phase:3.1 },
+    { px:0.5, py:0.35, r:180, thick:1.2, speed:0.18,  hue:0.58, alpha:0.55, phase:0 },
+    { px:0.5, py:0.35, r:260, thick:0.8, speed:-0.11, hue:0.75, alpha:0.40, phase:1.1 },
+    { px:0.5, py:0.35, r:360, thick:0.5, speed:0.07,  hue:0.88, alpha:0.30, phase:2.2 },
+    { px:0.72,py:0.7,  r:120, thick:1.0, speed:-0.22, hue:0.62, alpha:0.45, phase:0.5 },
+    { px:0.22,py:0.6,  r:90,  thick:1.5, speed:0.30,  hue:0.82, alpha:0.50, phase:3.1 },
   ];
 
   const hexes = [
-    { px:0.5, py:0.35, r:110, thick:1.8, speed:0.08,  hue:0.60, alpha:0.28, phase:0.7 },
-    { px:0.5, py:0.35, r:200, thick:1.0, speed:-0.05, hue:0.80, alpha:0.15, phase:2.1 },
-    { px:0.8, py:0.2,  r:60,  thick:1.2, speed:0.14,  hue:0.55, alpha:0.22, phase:1.4 },
-    { px:0.15,py:0.8,  r:75,  thick:1.0, speed:-0.19, hue:0.90, alpha:0.18, phase:0.3 },
+    { px:0.5, py:0.35, r:110, thick:1.8, speed:0.08,  hue:0.60, alpha:0.60, phase:0.7 },
+    { px:0.5, py:0.35, r:200, thick:1.0, speed:-0.05, hue:0.80, alpha:0.40, phase:2.1 },
+    { px:0.8, py:0.2,  r:60,  thick:1.2, speed:0.14,  hue:0.55, alpha:0.50, phase:1.4 },
+    { px:0.15,py:0.8,  r:75,  thick:1.0, speed:-0.19, hue:0.90, alpha:0.45, phase:0.3 },
   ];
 
   let mouse = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
@@ -283,13 +283,13 @@ function initWebGL() {
   }
 
   gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   let t = 0;
   function draw() {
     t += 0.016;
     const W = canvas.width, H = canvas.height;
-    gl.clearColor(0,0,0,0);
+    gl.clearColor(0.01, 0.01, 0.06, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // 1) Nebula
@@ -345,7 +345,7 @@ function initWebGL() {
       gl.vertexAttribPointer(shapePosLoc, 2, gl.FLOAT, false, 0, 0);
       const lh = (0.58 + t * 0.025) % 1.0;
       const [lr,lg,lb] = hslToRgb(lh, 1.0, 0.7);
-      gl.uniform4f(shapeColLoc, lr, lg, lb, 0.07);
+      gl.uniform4f(shapeColLoc, lr, lg, lb, 0.22);
       gl.drawArrays(gl.LINES, 0, connVerts.length / 2);
     }
 

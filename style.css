@@ -36,38 +36,17 @@ body {
   font-family: var(--font-body);
   line-height: 1.65;
   overflow-x: hidden;
-  cursor: none;
+  cursor: auto;
 }
 
 /* ── WEBGL CANVAS */
 #webgl-bg {
   position: fixed; inset: 0; z-index: 0;
-  pointer-events: none; opacity: 0.55;
+  pointer-events: none; opacity: 1;
 }
 
-/* ── CURSOR */
-.cursor-dot, .cursor-ring {
-  position: fixed; top: 0; left: 0;
-  border-radius: 50%; pointer-events: none;
-  z-index: 99999; will-change: transform;
-}
-.cursor-dot {
-  width: 6px; height: 6px;
-  background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan);
-  transform: translate(-50%,-50%);
-}
-.cursor-ring {
-  width: 36px; height: 36px;
-  border: 1.5px solid rgba(0,212,255,0.5);
-  transform: translate(-50%,-50%);
-  transition: width 0.2s var(--ease), height 0.2s var(--ease), border-color 0.2s;
-}
-.cursor-ring.hovered {
-  width: 56px; height: 56px;
-  border-color: var(--cyan);
-  background: rgba(0,212,255,0.04);
-}
+/* ── CURSOR (disabled) */
+.cursor-dot, .cursor-ring { display: none; }
 
 /* ── NOISE OVERLAY */
 body::after {
@@ -130,14 +109,14 @@ nav.scrolled::before { background: rgba(4,6,11,0.92); backdrop-filter: blur(20px
   padding: 0.55rem 1.4rem; border: 1px solid var(--border-hover); background: transparent;
   color: var(--text); border-radius: 8px; font-family: var(--font-head); font-size: 0.8rem;
   font-weight: 600; letter-spacing: 1px; text-transform: uppercase; text-decoration: none;
-  cursor: none; transition: all 0.25s;
+  cursor: auto; transition: all 0.25s;
 }
 .btn-ghost:hover { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
 
 .btn-primary {
   padding: 0.55rem 1.4rem; background: var(--grad); color: white; border: none;
   border-radius: 8px; font-family: var(--font-head); font-size: 0.8rem; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase; text-decoration: none; cursor: none;
+  letter-spacing: 1px; text-transform: uppercase; text-decoration: none; cursor: auto;
   transition: all 0.3s var(--ease); box-shadow: 0 4px 20px var(--cyan-glow);
 }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--cyan-glow); }
@@ -282,7 +261,7 @@ nav.scrolled::before { background: rgba(4,6,11,0.92); backdrop-filter: blur(20px
 .filter-btn {
   padding: 0.5rem 1.2rem; border: 1px solid var(--border); background: transparent;
   color: var(--muted); border-radius: 8px; font-family: var(--font-head);
-  font-size: 0.78rem; letter-spacing: 1px; text-transform: uppercase; cursor: none; transition: all 0.25s;
+  font-size: 0.78rem; letter-spacing: 1px; text-transform: uppercase; cursor: auto; transition: all 0.25s;
 }
 .filter-btn:hover, .filter-btn.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
 
@@ -290,7 +269,7 @@ nav.scrolled::before { background: rgba(4,6,11,0.92); backdrop-filter: blur(20px
 
 .game-card {
   border-radius: 14px; overflow: hidden; background: var(--bg-card);
-  border: 1px solid var(--border); transition: all 0.35s var(--ease); cursor: none; position: relative;
+  border: 1px solid var(--border); transition: all 0.35s var(--ease); cursor: auto; position: relative;
 }
 .game-card:hover { transform: translateY(-8px) scale(1.01); border-color: var(--border-hover); box-shadow: 0 20px 50px rgba(0,0,0,0.5),0 0 0 1px var(--cyan-dim); }
 
@@ -317,7 +296,7 @@ nav.scrolled::before { background: rgba(4,6,11,0.92); backdrop-filter: blur(20px
   width: 100%; padding: 0.75rem; background: var(--grad); border: none;
   border-radius: 8px; color: white; font-family: var(--font-head);
   font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-  cursor: none; transition: all 0.25s; box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+  cursor: auto; transition: all 0.25s; box-shadow: 0 4px 20px rgba(0,212,255,0.3);
 }
 .btn-get:hover { opacity: 0.9; }
 
@@ -397,7 +376,7 @@ footer { padding: 60px 0 30px; border-top: 1px solid var(--border); position: re
 .btn-apply {
   padding: 0.6rem 1.5rem; border: 1px solid var(--border-hover); background: var(--cyan-dim);
   color: var(--cyan); border-radius: 8px; font-family: var(--font-head); font-size: 0.78rem;
-  font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: none; transition: all 0.25s; position: relative;
+  font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: auto; transition: all 0.25s; position: relative;
 }
 .btn-apply:hover { background: var(--cyan); color: var(--bg); }
 
