@@ -1,27 +1,27 @@
 /* ═══════════════════════════════════════════════════════════════
    STEAMTOOLS — Premium Dark Gaming UI
-   Aesthetic: Cyberpunk-Noir / Deep Space Vault
+   Aesthetic: Straw Hat / Grand Line — deep ocean noir
    ═══════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:ital,wght@0,300;0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
-  --bg:          #04060b;
-  --bg2:         #080c14;
-  --bg-card:     rgba(10, 16, 28, 0.75);
-  --cyan:        #00d4ff;
-  --cyan-dim:    rgba(0, 212, 255, 0.12);
-  --cyan-glow:   rgba(0, 212, 255, 0.35);
-  --blue:        #3b5bdb;
-  --accent:      #ff2d6b;
-  --accent-dim:  rgba(255, 45, 107, 0.15);
-  --gold:        #ffc107;
-  --text:        #d8e6f0;
-  --muted:       #5e7a99;
-  --border:      rgba(0, 212, 255, 0.08);
-  --border-hover:rgba(0, 212, 255, 0.3);
-  --grad:        linear-gradient(135deg, #00d4ff, #3b5bdb);
-  --grad-r:      linear-gradient(135deg, #ff2d6b, #9c27b0);
+  --bg:          #03040a;
+  --bg2:         #060810;
+  --bg-card:     rgba(8, 12, 22, 0.80);
+  --cyan:        #e8b84b;          /* gold — primary accent */
+  --cyan-dim:    rgba(232,184,75, 0.12);
+  --cyan-glow:   rgba(232,184,75, 0.30);
+  --blue:        #5b8fb9;          /* steel blue */
+  --accent:      #b84c4c;          /* crimson ribbon */
+  --accent-dim:  rgba(184, 76, 76, 0.15);
+  --gold:        #e8b84b;
+  --text:        #d6cfc4;
+  --muted:       #6a7d8e;
+  --border:      rgba(232,184,75, 0.08);
+  --border-hover:rgba(232,184,75, 0.28);
+  --grad:        linear-gradient(135deg, #e8b84b, #5b8fb9);
+  --grad-r:      linear-gradient(135deg, #b84c4c, #7a3030);
   --ease:        cubic-bezier(0.23, 1, 0.32, 1);
   --font-head:   'Rajdhani', sans-serif;
   --font-body:   'Exo 2', sans-serif;
