@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request a Game | STEAMTOOLS</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<canvas id="webgl-bg"></canvas>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<nav>
+  <a href="../index.html" class="logo">
+    <div class="logo-icon">ST</div>
+    <span class="logo-text">STEAM<span>TOOLS</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="store.html">Store</a></li>
+    <li><a href="fixes.html">Fixes</a></li>
+    <li><a href="drops.html">Drops</a></li>
+    <li><a href="request.html" class="active">Request</a></li>
+    <li><a href="profile.html">Profile</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="profile.html" class="btn-ghost">Sign In</a>
+    <a href="#" class="btn-primary">Discord</a>
+  </div>
+</nav>
+
+<div class="subpage-wrap">
+  <div class="container">
+    <div class="page-hero reveal" style="text-align:center;max-width:600px;margin:0 auto 3rem;">
+      <span class="page-hero-tag">// REQUEST TERMINAL</span>
+      <h1>REQUEST <span class="text-gradient">A GAME</span></h1>
+      <p>Don't see what you're looking for? Submit a request and our team will add it to the vault.</p>
+    </div>
+
+    <div class="terminal-wrap reveal">
+      <div class="terminal-card">
+        <div class="terminal-bar">
+          <span class="t-dot r"></span>
+          <span class="t-dot y"></span>
+          <span class="t-dot g"></span>
+          <span class="terminal-bar-title">vault_request_terminal — v2.0</span>
+        </div>
+        <div class="terminal-body">
+          <p class="cmd-line">&gt; Initializing connection to STEAMTOOLS_API...</p>
+          <p class="cmd-line">&gt; Connection established. Enter request details below.</p>
+          <div class="t-divider"></div>
+
+          <div id="request-form">
+            <div class="input-row">
+              <label>GAME TITLE *</label>
+              <input class="t-input" type="text" id="req-title" placeholder="e.g. Cyberpunk 2077" required>
+            </div>
+            <div class="input-row">
+              <label>STEAM APP ID (OPTIONAL)</label>
+              <input class="t-input" type="text" id="req-id" placeholder="e.g. 1091500">
+            </div>
+            <div class="input-row">
+              <label>NOTES (OPTIONAL)</label>
+              <input class="t-input" type="text" id="req-notes" placeholder="e.g. include DLC, specific version...">
+            </div>
+            <button class="btn-hero" id="submit-req" style="margin-top:0.5rem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              TRANSMIT REQUEST
+            </button>
+          </div>
+          <div id="req-success" style="display:none;padding:2rem 0;text-align:center">
+            <p class="cmd-line" style="color:var(--cyan);font-size:1rem">&gt; REQUEST RECEIVED ✓</p>
+            <p style="color:var(--muted);margin-top:1rem;font-family:var(--font-mono);font-size:0.8rem">Your request has been queued. Check Discord for updates.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('submit-req').addEventListener('click', () => {
+    const title = document.getElementById('req-title').value.trim();
+    if (!title) { document.getElementById('req-title').focus(); return; }
+    document.getElementById('request-form').style.display = 'none';
+    document.getElementById('req-success').style.display = 'block';
+  });
+});
+</script>
+<script src="../shared.js"></script>
+</body>
+</html>

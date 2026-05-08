@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile | STEAMTOOLS</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<canvas id="webgl-bg"></canvas>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<nav>
+  <a href="../index.html" class="logo">
+    <div class="logo-icon">ST</div>
+    <span class="logo-text">STEAM<span>TOOLS</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="store.html">Store</a></li>
+    <li><a href="fixes.html">Fixes</a></li>
+    <li><a href="drops.html">Drops</a></li>
+    <li><a href="request.html">Request</a></li>
+    <li><a href="profile.html" class="active">Profile</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="#" class="btn-primary">Discord</a>
+  </div>
+</nav>
+
+<div class="subpage-wrap">
+  <div class="container">
+    <div class="profile-layout">
+      <!-- Sidebar -->
+      <aside class="profile-sidebar reveal">
+        <div class="avatar-ring">
+          <img src="https://api.dicebear.com/8.x/bottts/svg?seed=VaultHunter&backgroundColor=0a0f1a" alt="Avatar">
+        </div>
+        <h2>VaultHunter</h2>
+        <div class="tier-badge">✦ PREMIUM MEMBER</div>
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <span class="mini-stat-num">124</span>
+            <span class="mini-stat-label">Games</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-num">42</span>
+            <span class="mini-stat-label">Level</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-num">18</span>
+            <span class="mini-stat-label">Requests</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-num">3y</span>
+            <span class="mini-stat-label">Member</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <div class="profile-main">
+        <div class="profile-panel reveal reveal-delay-1">
+          <p class="panel-title">// RECENT DOWNLOADS</p>
+          <div class="history-item">
+            <span class="history-game">Elden Ring</span>
+            <span class="history-date">2 days ago</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Cyberpunk 2077</span>
+            <span class="history-date">1 week ago</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Baldur's Gate 3</span>
+            <span class="history-date">2 weeks ago</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Red Dead Redemption 2</span>
+            <span class="history-date">1 month ago</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Rust</span>
+            <span class="history-date">1 month ago</span>
+          </div>
+        </div>
+
+        <div class="profile-panel reveal reveal-delay-2">
+          <p class="panel-title">// MY REQUESTS</p>
+          <div class="history-item">
+            <span class="history-game">Monster Hunter Wilds</span>
+            <span class="history-date" style="color:var(--cyan)">FULFILLED</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Hollow Knight: Silksong</span>
+            <span class="history-date" style="color:#4ade80">IN QUEUE</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Satisfactory v2</span>
+            <span class="history-date" style="color:var(--muted)">PENDING</span>
+          </div>
+        </div>
+
+        <div class="profile-panel reveal reveal-delay-3">
+          <p class="panel-title">// ACCOUNT SETTINGS</p>
+          <div class="history-item">
+            <span class="history-game">Username</span>
+            <span class="history-date">VaultHunter</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Membership Tier</span>
+            <span class="history-date" style="color:var(--gold)">Premium</span>
+          </div>
+          <div class="history-item">
+            <span class="history-game">Discord Linked</span>
+            <span class="history-date" style="color:#4ade80">Connected</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../shared.js"></script>
+</body>
+</html>

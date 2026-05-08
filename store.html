@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store | STEAMTOOLS</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<canvas id="webgl-bg"></canvas>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<nav>
+  <a href="../index.html" class="logo">
+    <div class="logo-icon">ST</div>
+    <span class="logo-text">STEAM<span>TOOLS</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="store.html" class="active">Store</a></li>
+    <li><a href="fixes.html">Fixes</a></li>
+    <li><a href="drops.html">Drops</a></li>
+    <li><a href="request.html">Request</a></li>
+    <li><a href="profile.html">Profile</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="profile.html" class="btn-ghost">Sign In</a>
+    <a href="#" class="btn-primary">Discord</a>
+  </div>
+</nav>
+
+<div class="subpage-wrap">
+  <div class="container">
+    <div class="page-hero reveal">
+      <span class="page-hero-tag">// THE COLLECTION</span>
+      <h1>THE VAULT <span class="text-gradient">STORE</span></h1>
+      <p>Access the largest collection of verified Steam manifests. Hundreds of titles, always growing.</p>
+    </div>
+
+    <div class="store-controls reveal">
+      <input type="text" id="store-search" placeholder="🔍  Search the archive...">
+      <div class="filter-strip">
+        <button class="filter-btn active" data-filter="all">All Games</button>
+        <button class="filter-btn" data-filter="aaa">AAA</button>
+        <button class="filter-btn" data-filter="indie">Indie</button>
+        <button class="filter-btn" data-filter="survival">Survival</button>
+      </div>
+    </div>
+
+    <div class="game-grid" id="store-grid"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+const vaultData = [
+  { id: '271590',  name: 'Grand Theft Auto V',     category: 'aaa',      tag: 'AAA · Action' },
+  { id: '1174180', name: 'Red Dead Redemption 2',  category: 'aaa',      tag: 'AAA · Adventure' },
+  { id: '1245620', name: 'Elden Ring',              category: 'aaa',      tag: 'AAA · RPG' },
+  { id: '1091500', name: 'Cyberpunk 2077',          category: 'aaa',      tag: 'AAA · Sci-Fi' },
+  { id: '252490',  name: 'Rust',                    category: 'survival', tag: 'Survival · PVP' },
+  { id: '1086940', name: "Baldur's Gate 3",         category: 'aaa',      tag: 'AAA · RPG' },
+  { id: '264710',  name: 'Subnautica',              category: 'survival', tag: 'Survival · Indie' },
+  { id: '1145360', name: 'Hades',                   category: 'indie',    tag: 'Indie · Roguelike' },
+  { id: '413150',  name: 'Stardew Valley',          category: 'indie',    tag: 'Indie · RPG' },
+  { id: '311690',  name: 'Gunpoint',                category: 'indie',    tag: 'Indie · Stealth' }
+];
+
+let currentFilter = 'all';
+let currentSearch = '';
+
+function renderStore() {
+  const grid = document.getElementById('store-grid');
+  let data = currentFilter === 'all' ? vaultData : vaultData.filter(g => g.category === currentFilter);
+  if (currentSearch) data = data.filter(g => g.name.toLowerCase().includes(currentSearch.toLowerCase()));
+  grid.innerHTML = '';
+  data.forEach((game, i) => {
+    const imgUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.id}/library_600x900_2x.jpg`;
+    const card = document.createElement('div');
+    card.className = 'game-card reveal visible';
+    card.style.transitionDelay = `${i * 0.04}s`;
+    card.innerHTML = `
+      <div class="game-img">
+        <img src="${imgUrl}" alt="${game.name}" loading="lazy" onerror="this.src='https://placehold.co/300x450/080c14/5e7a99?text=${encodeURIComponent(game.name)}'">
+        <span class="game-status-badge">VERIFIED</span>
+        <div class="game-overlay"><button class="btn-get">Get Game ↗</button></div>
+      </div>
+      <div class="game-info"><h3>${game.name}</h3><span class="game-tag">${game.tag}</span></div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderStore();
+  document.getElementById('store-search').addEventListener('input', e => { currentSearch = e.target.value; renderStore(); });
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.getAttribute('data-filter');
+      renderStore();
+    });
+  });
+});
+</script>
+<script src="../shared.js"></script>
+</body>
+</html>
