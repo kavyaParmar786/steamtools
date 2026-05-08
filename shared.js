@@ -1,8 +1,17 @@
 /**
- * STEAMTOOLS — WebGL Scene
- * Concept: COMIC / DOODLE — hand-drawn ink lines, wobbly shapes,
- * halftone dots, speed lines, sketchy hatching, pop-art panels
- * Palette: deep black bg, gold, steel blue, crimson — Straw Hat
+ * STEAMTOOLS WebGL Scene
+ * "THE DIGITAL VAULT"
+ *
+ * Concept: You're looking INTO a vast digital vault.
+ * — Infinite grid floor receding into depth (tron-style perspective)
+ * — Floating holographic game cards drifting upward in layers
+ * — Central glowing vault lock ring that slowly rotates
+ * — Data stream particles falling like digital rain columns
+ * — Scan-line sweep that lights up the scene periodically
+ * — Mouse parallax shifts the whole scene
+ *
+ * Colors: Deep navy/black, electric cyan (#00d4ff), gold (#e8b84b), 
+ *         soft white glows — premium vault aesthetic
  */
 
 function initWebGL() {
@@ -21,128 +30,203 @@ function initWebGL() {
   resize();
   window.addEventListener('resize', resize);
 
-  function sh(type, src) {
+  /* ── compile helpers ── */
+  function makeSh(type, src) {
     const s = gl.createShader(type);
     gl.shaderSource(s, src);
     gl.compileShader(s);
     return s;
   }
-  function prog(vs, fs) {
+  function makeProg(vs, fs) {
     const p = gl.createProgram();
-    gl.attachShader(p, sh(gl.VERTEX_SHADER,   vs));
-    gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+    gl.attachShader(p, makeSh(gl.VERTEX_SHADER,   vs));
+    gl.attachShader(p, makeSh(gl.FRAGMENT_SHADER, fs));
     gl.linkProgram(p);
     return p;
   }
 
-  /* ═══════════════════════════════════════════════════════
-     PROGRAM 1 — FULL-SCREEN COMIC BG
-     Halftone dots + ink wash panels + speed lines
-  ═══════════════════════════════════════════════════════ */
-  const bgProg = prog(
+  /* ════════════════════════════════════════════════════
+     PROGRAM 1 — BACKGROUND
+     Deep vault atmosphere: vignette, scan-line glow,
+     subtle grid horizon, colour depth fog
+  ════════════════════════════════════════════════════ */
+  const bgProg = makeProg(
   `attribute vec2 a_pos; varying vec2 v_uv;
    void main(){ v_uv=a_pos*.5+.5; gl_Position=vec4(a_pos,0,1); }`,
   `precision highp float;
    varying vec2 v_uv;
    uniform float u_t;
-   uniform vec2  u_res;
    uniform vec2  u_mouse;
-
-   float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5); }
-
-   /* wobbly line SDF — comic ink stroke feel */
-   float inkLine(vec2 uv, vec2 a, vec2 b, float w, float wobble, float t){
-     vec2 ab=b-a, ap=uv-a;
-     float tt=clamp(dot(ap,ab)/dot(ab,ab),0.,1.);
-     vec2 closest=a+tt*ab;
-     float d=length(uv-closest);
-     /* add wobble perpendicular to line */
-     float along=tt*length(ab);
-     float wob=sin(along*0.04+t*1.5)*wobble + sin(along*0.09+t*0.8)*wobble*0.5;
-     d+=wob;
-     return 1.0-smoothstep(w-0.003,w+0.003,d/length(u_res));
-   }
+   uniform vec2  u_res;
 
    void main(){
-     vec2 uv=v_uv;
-     vec2 p=uv*u_res;
-     float t=u_t;
+     vec2 uv = v_uv;
+     /* parallax shift from mouse */
+     vec2 m  = (u_mouse/u_res - .5) * .018;
+     uv += m;
 
-     /* ── deep comic-book dark bg */
-     vec3 bg0 = vec3(0.03, 0.03, 0.06);
-     vec3 bg1 = vec3(0.06, 0.05, 0.10);
-     vec3 col  = mix(bg0, bg1, uv.y*0.6 + 0.2);
+     /* deep space base — near black at top, deep navy at bottom */
+     vec3 top    = vec3(0.010, 0.012, 0.028);
+     vec3 bottom = vec3(0.005, 0.018, 0.048);
+     vec3 col    = mix(top, bottom, pow(uv.y, 1.4));
 
-     /* ── halftone dot grid — classic comic printing */
-     float dotScale = 28.0;
-     vec2 cell = floor(uv * dotScale);
-     vec2 fc   = fract(uv * dotScale) - 0.5;
-     /* vary dot size with slow noise + position */
-     float dn = hash(cell + floor(t*0.3));
-     float brightness = 0.12 + 0.22*sin(cell.x*0.4+t*0.25)*sin(cell.y*0.35+t*0.18);
-     brightness += 0.1*(1.0-length(uv-vec2(0.5))*1.4);
-     float dotR = clamp(brightness, 0.04, 0.38);
-     float dot  = 1.0-smoothstep(dotR-0.02, dotR+0.02, length(fc));
-     /* gold halftone */
-     col += vec3(0.91,0.72,0.29) * dot * 0.10;
+     /* ── perspective grid floor ── */
+     /* project uv into fake 3-point perspective */
+     vec2 fp  = uv - vec2(.5, .52);         /* centered at horizon */
+     float hy = uv.y - .52;                 /* below horizon */
+     if(hy > 0.0){
+       float depth = hy / .48;              /* 0 at horizon, 1 at bottom */
+       float perspective = 1.0 / (depth * 3.0 + 0.001);
+       vec2 gp = fp * perspective;          /* grid space */
 
-     /* ── speed lines radiating from hero center — manga style */
-     vec2 center = vec2(0.5, 0.40);
-     vec2 dir    = normalize(uv - center);
-     float angle = atan(dir.y, dir.x);
-     float dist  = length(uv - center);
-     /* create streaks by quantising angle with wobble */
-     float streakW   = 0.045 + 0.02*sin(t*0.4);
-     float angleQ    = mod(angle + sin(angle*14.0+t*0.6)*0.04, streakW);
-     float streak    = smoothstep(streakW*0.0, streakW*0.28, angleQ)
-                     * smoothstep(streakW,      streakW*0.72, angleQ);
-     float radFade   = smoothstep(0.08, 0.22, dist) * smoothstep(0.85, 0.45, dist);
-     streak *= radFade;
-     /* alternate gold / steel blue streaks */
-     float altMask = step(0.5, fract(angle / streakW * 0.5));
-     vec3 streakCol= mix(vec3(0.91,0.72,0.29), vec3(0.36,0.56,0.73), altMask);
-     col += streakCol * streak * 0.14;
+       /* cell lines */
+       float gx = abs(fract(gp.x * 2.2 + u_t*.04) - .5);
+       float gy = abs(fract(gp.y * 1.8 - u_t*.06) - .5);
 
-     /* ── panel borders — comic book grid overlay */
-     /* two vertical dividers + one horizontal */
-     float lw = 2.5/u_res.x;
-     float panelL = smoothstep(lw,0.0,abs(uv.x-0.35)) + smoothstep(lw,0.0,abs(uv.x-0.68));
-     float panelH = smoothstep(2.5/u_res.y,0.0,abs(uv.y-0.55));
-     col += vec3(0.91,0.72,0.29) * (panelL+panelH) * 0.18;
+       float lw   = .032;
+       float lineX = smoothstep(lw, .0, gx);
+       float lineY = smoothstep(lw, .0, gy);
+       float grid  = max(lineX, lineY);
 
-     /* ── ink blotch vignette */
-     float vig = uv.x*uv.y*(1.-uv.x)*(1.-uv.y);
-     col *= 0.5 + 0.6*smoothstep(0.0,0.2, vig*18.0);
+       /* fade grid at horizon and edges */
+       float hFade = smoothstep(.0, .18, depth) * smoothstep(1.0, .55, depth);
+       float eFade = 1.0 - smoothstep(.32, .5, abs(fp.x * perspective * .4));
+       grid *= hFade * eFade;
 
-     /* ── mouse spotlight — torch shining on comic page */
-     vec2 muv = u_mouse/u_res; muv.y=1.0-muv.y;
-     float ml = length(uv-muv);
-     col += vec3(0.91,0.72,0.29)*smoothstep(0.32,0.0,ml)*0.06;
+       /* cyan grid tint */
+       col = mix(col, vec3(.0, .55, .78), grid * .38);
+       /* gold accent on grid intersections */
+       float inter = lineX * lineY;
+       col = mix(col, vec3(.95, .78, .30), inter * hFade * eFade * .6);
+     }
 
-     gl_FragColor = vec4(col,1.0);
+     /* ── horizon glow line ── */
+     float hl = smoothstep(.018, .0, abs(uv.y - .52));
+     col += vec3(.0, .65, .90) * hl * .55;
+     col += vec3(.95, .78, .30) * hl * .18;
+
+     /* ── periodic scan beam sweeping up ── */
+     float scanSpeed = .38;
+     float scanY     = mod(u_t * scanSpeed, 1.4) - .2;
+     float scanLine  = smoothstep(.06, .0, abs(uv.y - scanY));
+     float scanFade  = smoothstep(.0,.15,uv.x)*smoothstep(1.,.85,uv.x);
+     col += vec3(.0, .80, 1.0) * scanLine * scanFade * .22;
+
+     /* ── ambient top glow — like ceiling light in vault ── */
+     float topGlow = smoothstep(.55, .0, uv.y);
+     col += vec3(.0, .25, .55) * topGlow * .12;
+
+     /* ── central radial glow behind vault lock ── */
+     vec2  cp   = uv - vec2(.5, .40);
+     float cd   = length(cp * vec2(1.0, 1.6));
+     float core = smoothstep(.45, .0, cd);
+     col += vec3(.0, .40, .70) * core * .14;
+     col += vec3(.95, .78, .30) * smoothstep(.10, .0, cd) * .08;
+
+     /* ── vignette ── */
+     float v = uv.x * uv.y * (1.-uv.x) * (1.-uv.y);
+     col *= .35 + .75 * smoothstep(.0, .22, v * 16.0);
+
+     gl_FragColor = vec4(col, 1.0);
    }`);
 
   const bgQuad = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, bgQuad);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER,
+    new Float32Array([-1,-1, 1,-1, -1,1,  1,-1, 1,1, -1,1]),
+    gl.STATIC_DRAW);
   gl.useProgram(bgProg);
-  const bg_aPos   = gl.getAttribLocation(bgProg,  'a_pos');
-  const bg_uT     = gl.getUniformLocation(bgProg,  'u_t');
-  const bg_uRes   = gl.getUniformLocation(bgProg,  'u_res');
-  const bg_uMouse = gl.getUniformLocation(bgProg,  'u_mouse');
+  const bg_aPos   = gl.getAttribLocation(bgProg, 'a_pos');
+  const bg_uT     = gl.getUniformLocation(bgProg, 'u_t');
+  const bg_uMouse = gl.getUniformLocation(bgProg, 'u_mouse');
+  const bg_uRes   = gl.getUniformLocation(bgProg, 'u_res');
 
-  /* ═══════════════════════════════════════════════════════
-     PROGRAM 2 — DOODLE GEOMETRY
-     Wobbly circles, hatching boxes, sketch stars, scribble arcs
-     All drawn as thick anti-aliased lines from CPU-generated verts
-  ═══════════════════════════════════════════════════════ */
-  const geoProg = prog(
+  /* ════════════════════════════════════════════════════
+     PROGRAM 2 — HOLOGRAPHIC GAME CARDS
+     Flat quads drifting upward with parallax layers.
+     Each card: glowing border, inner shimmer, label bar.
+  ════════════════════════════════════════════════════ */
+  const cardProg = makeProg(
   `attribute vec2  a_pos;
+   attribute vec2  a_uv;
+   attribute float a_alpha;
+   attribute float a_type;   /* 0=card body, 1=border, 2=accent bar */
+   uniform   vec2  u_res;
+   uniform   float u_t;
+   uniform   vec2  u_mouse;
+   varying   vec2  v_uv;
+   varying   float v_a;
+   varying   float v_type;
+
+   void main(){
+     vec2 mp  = (u_mouse/u_res-.5) * .025;
+     /* cards in back (high a_type index via a_alpha encode) respond less */
+     vec2 pos = a_pos + mp * (1.0 - a_alpha*.3);
+     vec2 clip= (pos/u_res)*2.-1.; clip.y=-clip.y;
+     gl_Position=vec4(clip,0,1);
+     v_uv  =a_uv; v_a=a_alpha; v_type=a_type;
+   }`,
+  `precision mediump float;
+   varying vec2  v_uv;
+   varying float v_a;
+   varying float v_type;
+   uniform float u_t;
+
+   void main(){
+     vec2 uv=v_uv;
+     vec3 col;
+     float a;
+
+     if(v_type < .5){
+       /* card body — dark glass with subtle shimmer */
+       vec3 base  = vec3(.04, .06, .12);
+       /* diagonal shimmer sweep */
+       float sh   = smoothstep(.0,.2, uv.x+uv.y - mod(u_t*.55, 2.4));
+       sh        -= smoothstep(.2,.35,uv.x+uv.y - mod(u_t*.55, 2.4));
+       base      += vec3(.0,.55,.85)*sh*.12;
+       col = base;
+       a   = v_a * .72;
+
+     } else if(v_type < 1.5){
+       /* border glow — cyan */
+       float edge = min(min(uv.x,uv.y), min(1.-uv.x,1.-uv.y));
+       float glow = 1. - smoothstep(.0,.04,edge);
+       col = mix(vec3(.0,.70,.95), vec3(.95,.78,.30), step(.5,uv.y));
+       a   = v_a * glow * (.6 + .4*sin(u_t*1.8+v_a*8.));
+
+     } else {
+       /* accent bar at bottom — gold */
+       col = vec3(.95, .78, .30);
+       a   = v_a * .85;
+     }
+
+     gl_FragColor = vec4(col, clamp(a,0.,1.));
+   }`);
+
+  const card_aPos   = gl.getAttribLocation(cardProg, 'a_pos');
+  const card_aUv    = gl.getAttribLocation(cardProg, 'a_uv');
+  const card_aAlpha = gl.getAttribLocation(cardProg, 'a_alpha');
+  const card_aType  = gl.getAttribLocation(cardProg, 'a_type');
+  const card_uRes   = gl.getUniformLocation(cardProg, 'u_res');
+  const card_uT     = gl.getUniformLocation(cardProg, 'u_t');
+  const card_uMouse = gl.getUniformLocation(cardProg, 'u_mouse');
+  const cardPosBuf  = gl.createBuffer();
+  const cardUvBuf   = gl.createBuffer();
+  const cardAlpBuf  = gl.createBuffer();
+  const cardTypBuf  = gl.createBuffer();
+
+  /* ════════════════════════════════════════════════════
+     PROGRAM 3 — VAULT LOCK RINGS
+     Concentric rotating rings with notches — like a
+     combination lock / safe door mechanism
+  ════════════════════════════════════════════════════ */
+  const ringProg = makeProg(
+  `attribute vec2 a_pos;
    attribute float a_alpha;
    attribute vec3  a_col;
-   uniform   vec2  u_res;
-   varying   float v_a;
-   varying   vec3  v_col;
+   uniform vec2 u_res;
+   varying float v_a;
+   varying vec3  v_col;
    void main(){
      vec2 clip=(a_pos/u_res)*2.-1.; clip.y=-clip.y;
      gl_Position=vec4(clip,0,1); v_a=a_alpha; v_col=a_col;
@@ -150,382 +234,300 @@ function initWebGL() {
   `precision mediump float;
    varying float v_a; varying vec3 v_col;
    void main(){ gl_FragColor=vec4(v_col,v_a); }`);
-  const geo_aPos   = gl.getAttribLocation(geoProg,  'a_pos');
-  const geo_aAlpha = gl.getAttribLocation(geoProg,  'a_alpha');
-  const geo_aCol   = gl.getAttribLocation(geoProg,  'a_col');
-  const geo_uRes   = gl.getUniformLocation(geoProg, 'u_res');
-  const geoPosBuf  = gl.createBuffer();
-  const geoAlpBuf  = gl.createBuffer();
-  const geoColBuf  = gl.createBuffer();
+  const ring_aPos   = gl.getAttribLocation(ringProg,  'a_pos');
+  const ring_aAlpha = gl.getAttribLocation(ringProg,  'a_alpha');
+  const ring_aCol   = gl.getAttribLocation(ringProg,  'a_col');
+  const ring_uRes   = gl.getUniformLocation(ringProg, 'u_res');
+  const ringPosBuf  = gl.createBuffer();
+  const ringAlpBuf  = gl.createBuffer();
+  const ringColBuf  = gl.createBuffer();
 
-  /* ═══════════════════════════════════════════════════════
-     PROGRAM 3 — PARTICLES as comic ink splats / dots
-  ═══════════════════════════════════════════════════════ */
-  const ptProg = prog(
+  /* ════════════════════════════════════════════════════
+     PROGRAM 4 — DATA STREAM PARTICLES
+     Falling columns of dots — like the Matrix / 
+     digital data raining into the vault
+  ════════════════════════════════════════════════════ */
+  const streamProg = makeProg(
   `attribute vec2  a_pos;
    attribute float a_sz;
-   attribute float a_hue;
+   attribute float a_bright;
    uniform   vec2  u_res;
-   uniform   float u_t;
-   varying   float v_hue;
+   varying   float v_b;
    void main(){
      vec2 clip=(a_pos/u_res)*2.-1.; clip.y=-clip.y;
      gl_Position=vec4(clip,0,1);
-     float pulse=1.0+0.35*sin(u_t*2.8+a_hue*12.56);
-     gl_PointSize=a_sz*pulse;
-     v_hue=a_hue;
+     gl_PointSize=a_sz; v_b=a_bright;
    }`,
   `precision mediump float;
-   varying float v_hue;
-   uniform float u_t;
+   varying float v_b;
    void main(){
      vec2 c=gl_PointCoord-.5; float r=length(c);
      if(r>.5) discard;
-     /* comic ink dot — hard edge with tiny sketch roughness */
-     float edge=smoothstep(0.48,0.38,r);
-     float inner=smoothstep(0.0,0.22,r);
-     /* palette: 0=gold 1=steel 2=crimson 3=white-ish */
-     vec3 col;
-     float h=v_hue;
-     if(h<0.33)      col=vec3(0.95,0.78,0.28);
-     else if(h<0.60) col=vec3(0.42,0.62,0.80);
-     else if(h<0.82) col=vec3(0.80,0.32,0.32);
-     else            col=vec3(0.88,0.85,0.78);
-     float a=edge*(0.55+inner*0.3);
-     gl_FragColor=vec4(col,a);
+     float g=1.-smoothstep(.0,.5,r);
+     /* head of stream = bright cyan, tail = dark blue-green */
+     vec3 col=mix(vec3(.0,.35,.55), vec3(.0,.85,1.0), v_b);
+     gl_FragColor=vec4(col, g*(0.15 + v_b*.7));
    }`);
-  const pt_aPos = gl.getAttribLocation(ptProg, 'a_pos');
-  const pt_aSz  = gl.getAttribLocation(ptProg, 'a_sz');
-  const pt_aHue = gl.getAttribLocation(ptProg, 'a_hue');
-  const pt_uRes = gl.getUniformLocation(ptProg, 'u_res');
-  const pt_uT   = gl.getUniformLocation(ptProg, 'u_t');
-  const ptPosBuf = gl.createBuffer();
-  const ptSzBuf  = gl.createBuffer();
-  const ptHueBuf = gl.createBuffer();
+  const st_aPos    = gl.getAttribLocation(streamProg, 'a_pos');
+  const st_aSz     = gl.getAttribLocation(streamProg, 'a_sz');
+  const st_aBright = gl.getAttribLocation(streamProg, 'a_bright');
+  const st_uRes    = gl.getUniformLocation(streamProg,'u_res');
+  const stPosBuf   = gl.createBuffer();
+  const stSzBuf    = gl.createBuffer();
+  const stBriBuf   = gl.createBuffer();
 
-  /* ── particle data */
-  const PT = 160;
-  const ptPos = new Float32Array(PT*2);
-  const ptSz  = new Float32Array(PT);
-  const ptHue = new Float32Array(PT);
-  const ptVel = new Float32Array(PT*2);
-  for(let i=0;i<PT;i++){
-    ptPos[i*2]   = Math.random()*1920;
-    ptPos[i*2+1] = Math.random()*1080;
-    const sp=0.04+Math.random()*0.13;
-    const an=Math.random()*Math.PI*2;
-    ptVel[i*2]=Math.cos(an)*sp; ptVel[i*2+1]=Math.sin(an)*sp;
-    const t=Math.random();
-    ptSz[i] = t<0.55 ? 2+Math.random()*3 : t<0.82 ? 5+Math.random()*5 : 9+Math.random()*7;
-    ptHue[i] = Math.random();
-  }
+  /* ── stream particle data ── */
+  const COLS   = 48;   /* number of columns */
+  const PER    = 22;   /* particles per column */
+  const ST_N   = COLS * PER;
+  const stPos  = new Float32Array(ST_N * 2);
+  const stSz   = new Float32Array(ST_N);
+  const stBri  = new Float32Array(ST_N);
+  const stColX = new Float32Array(COLS); /* x position of each column */
+  const stColV = new Float32Array(COLS); /* fall speed */
+  const stColO = new Float32Array(COLS); /* y offset */
 
-  /* ═══════════════════════════════════════════════════════
-     CPU GEOMETRY BUILDER — wobbly doodles
-  ═══════════════════════════════════════════════════════ */
-
-  /* thick line segment as a quad */
-  function thickLine(verts, alphas, cols, x1,y1,x2,y2, w, col, a){
-    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
-    const nx=-dy/len*w, ny=dx/len*w;
-    /* taper: base alpha at ends, full in middle — hand-drawn feel */
-    verts.push(
-      x1+nx,y1+ny, x1-nx,y1-ny, x2+nx,y2+ny,
-      x1-nx,y1-ny, x2-nx,y2-ny, x2+nx,y2+ny
-    );
-    const ae=a*0.3, am=a;
-    alphas.push(ae,ae,ae, ae,ae,ae);
-    for(let v=0;v<6;v++) cols.push(...col);
-  }
-
-  /* wobbly circle — segments with slight random offset */
-  function wobbleCircle(verts, alphas, cols, cx,cy,r, segs, strokeW, col, a, seed, wobAmt){
-    let px=null, py=null;
-    for(let i=0;i<=segs;i++){
-      const angle=(i/segs)*Math.PI*2;
-      const wob = wobAmt*(Math.sin(seed+i*2.3)*0.6 + Math.sin(seed*1.7+i*5.1)*0.4);
-      const rx=cx+(r+wob)*Math.cos(angle);
-      const ry=cy+(r+wob)*Math.sin(angle);
-      if(px!==null) thickLine(verts,alphas,cols,px,py,rx,ry,strokeW,col,a);
-      px=rx; py=ry;
+  for(let c = 0; c < COLS; c++){
+    stColX[c] = (c / (COLS-1)) * 1.08 - 0.04; /* 0..1 spread + slight overflow */
+    stColV[c] = 0.06 + Math.random() * 0.12;
+    stColO[c] = Math.random();
+    for(let r = 0; r < PER; r++){
+      const i = c * PER + r;
+      stSz[i] = 1.5 + Math.random() * 2.5;
     }
   }
 
-  /* sketchy star burst */
-  function starBurst(verts, alphas, cols, cx,cy,r, spikes, strokeW, col, a, seed){
-    for(let i=0;i<spikes;i++){
-      const an=(i/spikes)*Math.PI*2 + seed*0.4;
-      const len=r*(0.5+Math.random()*0.7);
-      const tipX=cx+Math.cos(an)*len, tipY=cy+Math.sin(an)*len;
-      thickLine(verts,alphas,cols,cx,cy,tipX,tipY,strokeW,col,a*0.7);
-      /* secondary short stroke for sketch feel */
-      const an2=an+0.18*(Math.random()>0.5?1:-1);
-      const len2=len*0.55;
-      thickLine(verts,alphas,cols,
-        cx+Math.cos(an)*len*0.3, cy+Math.sin(an)*len*0.3,
-        cx+Math.cos(an2)*len2,   cy+Math.sin(an2)*len2,
-        strokeW*0.6, col, a*0.5);
-    }
+  /* ── floating card data ── */
+  const CARD_N = 22;
+  const cards = [];
+  for(let i = 0; i < CARD_N; i++){
+    const layer = Math.floor(i / 8); /* 0=front, 1=mid, 2=back */
+    const scale = [1.0, 0.72, 0.48][layer];
+    const w = (90 + Math.random()*50) * scale;
+    const h = w * (4/3);
+    cards.push({
+      x:  Math.random() * 1.1 - 0.05,  /* 0..1 normalized */
+      y:  Math.random(),
+      vy: (0.008 + Math.random()*0.014) * (layer===0?1:layer===1?0.65:0.35),
+      w, h,
+      alpha: [0.62, 0.42, 0.22][layer],
+      tilt:  (Math.random()-0.5)*0.18,  /* slight tilt in degrees */
+      phase: Math.random()*Math.PI*2,
+    });
   }
 
-  /* hatching box */
-  function hatchBox(verts, alphas, cols, x,y,w,h, spacing, angle, strokeW, col, a){
-    const cos=Math.cos(angle), sin=Math.sin(angle);
-    const diag=Math.hypot(w,h);
-    for(let d=-diag;d<diag;d+=spacing){
-      /* intersect hatch line with box */
-      const mx=x+w/2, my=y+h/2;
-      const ax=mx+cos*d - sin*diag*2;
-      const ay=my+sin*d + cos*diag*2;
-      const bx=mx+cos*d + sin*diag*2;
-      const by=my+sin*d - cos*diag*2;
-      /* clip to box — simple approach */
-      function clip(ax,ay,bx,by,x0,y0,x1,y1){
-        let t0=0,t1=1;
-        const dx=bx-ax, dy=by-ay;
-        function clip1(p,q){ if(q===0) return p>=0; if(q<0){const r=p/q;if(r>t1)return false;if(r>t0)t0=r;}else{const r=p/q;if(r<t0)return false;if(r<t1)t1=r;} return true; }
-        if(!clip1(-dx,ax-x0))return null; if(!clip1(dx,x1-ax))return null;
-        if(!clip1(-dy,ay-y0))return null; if(!clip1(dy,y1-ay))return null;
-        return[ax+t0*dx,ay+t0*dy,ax+t1*dx,ay+t1*dy];
-      }
-      const r=clip(ax,ay,bx,by,x,y,x+w,y+h);
-      if(r) thickLine(verts,alphas,cols,r[0],r[1],r[2],r[3],strokeW,col,a);
-    }
+  /* ── geometry helpers ── */
+  function quad(vP, vU, vA, vT, x, y, w, h, a, type) {
+    /* two triangles for a rectangle */
+    const x2 = x+w, y2 = y+h;
+    vP.push(x,y, x2,y, x,y2,  x2,y, x2,y2, x,y2);
+    vU.push(0,0, 1,0, 0,1,    1,0,  1,1,   0,1);
+    for(let v=0;v<6;v++){ vA.push(a); vT.push(type); }
   }
 
-  /* scribble arc — like comic thought bubble trail */
-  function scribbleArc(verts, alphas, cols, cx,cy,r,a0,a1,segs,strokeW,col,a,wobAmt){
-    let px=null,py=null;
-    for(let i=0;i<=segs;i++){
-      const angle=a0+(a1-a0)*(i/segs);
-      const wob=wobAmt*(Math.sin(i*3.1)*0.5+Math.sin(i*7.2)*0.25);
-      const rx=cx+(r+wob)*Math.cos(angle);
-      const ry=cy+(r+wob)*Math.sin(angle);
-      if(px!==null) thickLine(verts,alphas,cols,px,py,rx,ry,strokeW,col,a);
-      px=rx; py=ry;
+  function arcSegments(vP, vA, vC, cx, cy, r, thick, startA, endA, segs, col, alpha){
+    for(let i=0;i<segs;i++){
+      const a0 = startA + (endA-startA)*(i/segs);
+      const a1 = startA + (endA-startA)*((i+1)/segs);
+      const ri = r - thick;
+      vP.push(
+        cx+Math.cos(a0)*r,  cy+Math.sin(a0)*r,
+        cx+Math.cos(a0)*ri, cy+Math.sin(a0)*ri,
+        cx+Math.cos(a1)*r,  cy+Math.sin(a1)*r,
+        cx+Math.cos(a0)*ri, cy+Math.sin(a0)*ri,
+        cx+Math.cos(a1)*ri, cy+Math.sin(a1)*ri,
+        cx+Math.cos(a1)*r,  cy+Math.sin(a1)*r
+      );
+      for(let v=0;v<6;v++){ vA.push(alpha); vC.push(...col); }
     }
-  }
-
-  /* ── palette */
-  const GOLD    = [0.91,0.72,0.29];
-  const STEEL   = [0.36,0.56,0.73];
-  const CRIMSON = [0.72,0.30,0.30];
-  const CREAM   = [0.88,0.85,0.76];
-
-  /* ── static doodle layout — built once (rebuilt on resize) */
-  let doodleVerts=[], doodleAlphas=[], doodleColors=[];
-
-  function buildDoodles(){
-    doodleVerts=[]; doodleAlphas=[]; doodleColors=[];
-    const v=doodleVerts, al=doodleAlphas, co=doodleColors;
-
-    /* BIG wobbly rings — background atmosphere */
-    wobbleCircle(v,al,co, W*0.5,H*0.40, H*0.28, 64, 1.8, GOLD,    0.20, 1.1, 12);
-    wobbleCircle(v,al,co, W*0.5,H*0.40, H*0.42, 64, 1.0, STEEL,   0.12, 2.3, 18);
-    wobbleCircle(v,al,co, W*0.5,H*0.40, H*0.18, 48, 2.2, GOLD,    0.25, 0.7,  8);
-
-    /* off-center decorative rings */
-    wobbleCircle(v,al,co, W*0.12,H*0.22, 90, 40, 1.5, STEEL,   0.22, 3.2, 14);
-    wobbleCircle(v,al,co, W*0.88,H*0.28, 70, 36, 1.2, CRIMSON, 0.20, 5.1, 10);
-    wobbleCircle(v,al,co, W*0.78,H*0.72, 110,44, 1.8, GOLD,    0.18, 2.0, 16);
-    wobbleCircle(v,al,co, W*0.18,H*0.75, 80, 38, 1.3, STEEL,   0.16, 4.4, 11);
-
-    /* star bursts — action comic energy */
-    starBurst(v,al,co, W*0.08,H*0.18, 55, 12, 1.4, GOLD,    0.38, 0.3);
-    starBurst(v,al,co, W*0.92,H*0.15, 45, 10, 1.2, CRIMSON, 0.32, 1.7);
-    starBurst(v,al,co, W*0.85,H*0.78, 60, 14, 1.5, GOLD,    0.35, 2.8);
-    starBurst(v,al,co, W*0.12,H*0.82, 50, 11, 1.3, STEEL,   0.30, 0.9);
-    starBurst(v,al,co, W*0.5, H*0.40, 90, 18, 2.0, GOLD,    0.18, 1.2); /* center glow */
-
-    /* hatching zones — comic shadow/tone */
-    hatchBox(v,al,co, 0,        H*0.56, W*0.20,H*0.44, 14, 0.72, 0.8, STEEL,   0.08);
-    hatchBox(v,al,co, W*0.82,   H*0.52, W*0.18,H*0.48, 16, 0.55, 0.7, GOLD,    0.07);
-    hatchBox(v,al,co, W*0.38,   H*0.78, W*0.24,H*0.22, 18, 0.40, 0.6, CRIMSON, 0.06);
-    /* cross-hatch */
-    hatchBox(v,al,co, 0,        H*0.62, W*0.14,H*0.38,  12, -0.72, 0.7, STEEL,  0.05);
-    hatchBox(v,al,co, W*0.86,   H*0.58, W*0.14,H*0.42,  12, -0.55, 0.6, GOLD,   0.05);
-
-    /* scribble arcs — loose sketchy curves */
-    scribbleArc(v,al,co, W*0.25,H*0.35, 130, -0.8,  1.6,  40, 1.4, GOLD,    0.22, 10);
-    scribbleArc(v,al,co, W*0.75,H*0.65, 100, Math.PI+0.3, Math.PI*2-0.2, 36, 1.2, STEEL,   0.20,  8);
-    scribbleArc(v,al,co, W*0.50,H*0.80, 160, 0.1,   Math.PI-0.1, 50, 1.0, CREAM,   0.12, 12);
-    scribbleArc(v,al,co, W*0.50,H*0.10, 200, Math.PI*0.1, Math.PI*0.9, 48, 0.8, STEEL,   0.10, 14);
-
-    /* panel border lines — comic strip grid */
-    function panelLine(x1,y1,x2,y2,col,a){
-      /* add hand-drawn wobble manually */
-      const segs=18;
-      const len=Math.hypot(x2-x1,y2-y1);
-      let px=x1,py=y1;
-      for(let i=1;i<=segs;i++){
-        const tt=i/segs;
-        const nx2=x1+(x2-x1)*tt + (Math.random()-0.5)*3.5;
-        const ny2=y1+(y2-y1)*tt + (Math.random()-0.5)*3.5;
-        thickLine(v,al,co,px,py,nx2,ny2,1.6,col,a);
-        px=nx2; py=ny2;
-      }
-    }
-    panelLine(W*0.35, 0,       W*0.35, H*0.56, GOLD,   0.18);
-    panelLine(W*0.68, 0,       W*0.68, H*0.50, STEEL,  0.14);
-    panelLine(0,      H*0.56,  W*0.35, H*0.56, GOLD,   0.14);
-    panelLine(W*0.35, H*0.52,  W,      H*0.52, STEEL,  0.11);
-    panelLine(0,      H*0.75,  W*0.35, H*0.75, CRIMSON,0.12);
-
-    /* dot-dash decorative borders on sides */
-    for(let y=40;y<H;y+=28){
-      const s=5+Math.random()*4;
-      thickLine(v,al,co, 8+(Math.random()-0.5)*4,y, 8+(Math.random()-0.5)*4,y+s, 1.2, GOLD, 0.18);
-      thickLine(v,al,co, W-8+(Math.random()-0.5)*4,y, W-8+(Math.random()-0.5)*4,y+s, 1.2, STEEL, 0.15);
-    }
-
-    /* small random doodle clusters — like margin scribbles */
-    for(let i=0;i<22;i++){
-      const cx=Math.random()*W, cy=Math.random()*H;
-      if(cy>H*0.2 && cy<H*0.72 && cx>W*0.28 && cx<W*0.72) continue; /* skip center */
-      const r=8+Math.random()*28;
-      const type=Math.floor(Math.random()*3);
-      const pal=[GOLD,STEEL,CRIMSON,CREAM][Math.floor(Math.random()*4)];
-      if(type===0) wobbleCircle(v,al,co, cx,cy,r, 20+Math.floor(r),1.0,pal,0.20,Math.random()*10,r*0.15);
-      else if(type===1) starBurst(v,al,co, cx,cy,r, 5+Math.floor(Math.random()*5),0.9,pal,0.22,Math.random()*6);
-      else scribbleArc(v,al,co, cx,cy,r, Math.random()*Math.PI, Math.random()*Math.PI+Math.PI, 12, 0.9, pal, 0.18, r*0.2);
-    }
-  }
-  buildDoodles();
-  window.addEventListener('resize', ()=>{ resize(); buildDoodles(); });
-
-  /* ─────────────────────────────────────────────────────
-     ANIMATED DOODLES — drawn fresh each frame (small set)
-  ───────────────────────────────────────────────────── */
-  function buildAnimated(T){
-    const v=[], al=[], co=[];
-
-    /* pulsing central rings — breathe in/out */
-    const pulse=1+0.06*Math.sin(T*1.8);
-    wobbleCircle(v,al,co, W*0.5,H*0.40, H*0.28*pulse, 64, 2.0, GOLD,  0.28+0.10*Math.sin(T*1.8), T*0.4, 12);
-
-    /* rotating star — like action POW */
-    const stars=8;
-    for(let i=0;i<stars;i++){
-      const an=(i/stars)*Math.PI*2 + T*0.55;
-      const r=H*0.12*(1+0.08*Math.sin(T*2.1+i));
-      const tip=[W*0.5+Math.cos(an)*r, H*0.40+Math.sin(an)*r];
-      const an2=an+Math.PI/stars;
-      const r2=r*0.38;
-      const tip2=[W*0.5+Math.cos(an2)*r2, H*0.40+Math.sin(an2)*r2];
-      thickLine(v,al,co, W*0.5,H*0.40, tip[0],tip[1], 1.8, GOLD, 0.30);
-      thickLine(v,al,co, tip[0],tip[1], tip2[0],tip2[1], 1.2, STEEL, 0.22);
-    }
-
-    /* orbiting small circles — like classic cartoon orbit */
-    for(let i=0;i<5;i++){
-      const an=T*0.7 + (i/5)*Math.PI*2;
-      const orbitR=H*0.32;
-      const ox=W*0.5+Math.cos(an)*orbitR;
-      const oy=H*0.40+Math.sin(an)*orbitR;
-      const r=6+3*Math.sin(T*1.5+i);
-      wobbleCircle(v,al,co, ox,oy,r, 12, 1.5, [GOLD,STEEL,CRIMSON,CREAM,STEEL][i], 0.55, T+i*2, r*0.18);
-    }
-
-    /* flying speed lines from center — reactive to time */
-    const lCount=20;
-    for(let i=0;i<lCount;i++){
-      const an=(i/lCount)*Math.PI*2 + T*0.12;
-      const speed=1+0.5*Math.sin(T*0.8+i);
-      const r0=H*0.13*speed, r1=H*(0.22+0.06*Math.sin(T+i*0.5))*speed;
-      const col=[GOLD,STEEL,CRIMSON][i%3];
-      thickLine(v,al,co,
-        W*0.5+Math.cos(an)*r0, H*0.40+Math.sin(an)*r0,
-        W*0.5+Math.cos(an)*r1, H*0.40+Math.sin(an)*r1,
-        0.9+Math.sin(T+i)*0.4, col, 0.22);
-    }
-
-    /* corner burst animating */
-    const ba=T*0.3;
-    starBurst(v,al,co, W*0.08+Math.cos(ba)*5,H*0.18+Math.sin(ba)*3, 55+5*Math.sin(T), 12, 1.4, GOLD, 0.40+0.15*Math.sin(T*1.5), ba);
-    starBurst(v,al,co, W*0.92+Math.sin(ba)*4,H*0.15+Math.cos(ba)*4, 45+4*Math.sin(T*1.2), 10, 1.2, CRIMSON, 0.36+0.12*Math.sin(T*1.8), ba*1.3);
-
-    return {v,al,co};
   }
 
   /* mouse */
-  let mouse={x:W/2,y:H/2};
-  document.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+  let mouse = { x: 0, y: 0 };
+  let mouseTarget = { x: 0, y: 0 };
+  document.addEventListener('mousemove', e => {
+    mouseTarget.x = e.clientX;
+    mouseTarget.y = e.clientY;
+  });
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-  let start=null;
-  function draw(ts){
-    if(!start) start=ts;
-    const T=(ts-start)*0.001;
-    W=canvas.width; H=canvas.height;
+  const CYAN   = [0.0,  0.72, 0.95];
+  const GOLD   = [0.95, 0.78, 0.30];
+  const WHITE  = [0.85, 0.92, 1.00];
 
-    /* 1) comic bg */
+  let start = null;
+
+  function draw(ts) {
+    if(!start) start = ts;
+    const T = (ts - start) * 0.001;
+    W = canvas.width; H = canvas.height;
+
+    /* smooth mouse */
+    mouse.x += (mouseTarget.x - mouse.x) * 0.06;
+    mouse.y += (mouseTarget.y - mouse.y) * 0.06;
+
+    gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    /* ── 1. BACKGROUND ──────────────────────────────── */
     gl.useProgram(bgProg);
     gl.uniform1f(bg_uT, T);
-    gl.uniform2f(bg_uRes, W, H);
     gl.uniform2f(bg_uMouse, mouse.x, mouse.y);
+    gl.uniform2f(bg_uRes, W, H);
     gl.bindBuffer(gl.ARRAY_BUFFER, bgQuad);
     gl.enableVertexAttribArray(bg_aPos);
     gl.vertexAttribPointer(bg_aPos, 2, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    /* helper: upload + draw geo */
-    function drawGeo(verts,alphas,cols){
-      if(verts.length===0) return;
-      gl.useProgram(geoProg);
-      gl.uniform2f(geo_uRes, W, H);
+    /* ── 2. FLOATING CARDS ──────────────────────────── */
+    {
+      const vP=[], vU=[], vA=[], vT=[];
+      for(const c of cards){
+        /* drift upward, wrap */
+        c.y -= c.vy * 0.016;
+        if(c.y < -c.h/H - 0.05) c.y = 1.05 + Math.random()*0.3;
+        /* gentle horizontal sway */
+        const sway = Math.sin(T * 0.4 + c.phase) * 0.008;
+        const px = (c.x + sway) * W;
+        const py = c.y * H;
+        /* card body */
+        quad(vP,vU,vA,vT, px, py, c.w, c.h, c.alpha, 0);
+        /* border */
+        quad(vP,vU,vA,vT, px, py, c.w, c.h, c.alpha, 1);
+        /* gold bar at bottom (8px) */
+        quad(vP,vU,vA,vT, px+2, py+c.h-10, c.w-4, 8, c.alpha, 2);
+      }
+      gl.useProgram(cardProg);
+      gl.uniform2f(card_uRes, W, H);
+      gl.uniform1f(card_uT, T);
+      gl.uniform2f(card_uMouse, mouse.x, mouse.y);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, geoPosBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.DYNAMIC_DRAW);
-      gl.enableVertexAttribArray(geo_aPos);
-      gl.vertexAttribPointer(geo_aPos, 2, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cardPosBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vP), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(card_aPos);
+      gl.vertexAttribPointer(card_aPos, 2, gl.FLOAT, false, 0, 0);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, geoAlpBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(alphas), gl.DYNAMIC_DRAW);
-      gl.enableVertexAttribArray(geo_aAlpha);
-      gl.vertexAttribPointer(geo_aAlpha, 1, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cardUvBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vU), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(card_aUv);
+      gl.vertexAttribPointer(card_aUv, 2, gl.FLOAT, false, 0, 0);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, geoColBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cols), gl.DYNAMIC_DRAW);
-      gl.enableVertexAttribArray(geo_aCol);
-      gl.vertexAttribPointer(geo_aCol, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cardAlpBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vA), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(card_aAlpha);
+      gl.vertexAttribPointer(card_aAlpha, 1, gl.FLOAT, false, 0, 0);
 
-      gl.drawArrays(gl.TRIANGLES, 0, verts.length/2);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cardTypBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vT), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(card_aType);
+      gl.vertexAttribPointer(card_aType, 1, gl.FLOAT, false, 0, 0);
+
+      gl.drawArrays(gl.TRIANGLES, 0, vP.length/2);
     }
 
-    /* 2) static doodles */
-    drawGeo(doodleVerts, doodleAlphas, doodleColors);
+    /* ── 3. VAULT LOCK RINGS ────────────────────────── */
+    {
+      const vP=[], vA=[], vC=[];
+      const cx = W*0.5, cy = H*0.40;
 
-    /* 3) animated doodles */
-    const anim=buildAnimated(T);
-    drawGeo(anim.v, anim.al, anim.co);
+      /* ring definitions: r, thick, speed, notches, col, baseAlpha */
+      const ringDefs = [
+        { r:H*.220, th:1.8, spd: 0.18, notch:12, col:CYAN,  alpha:0.55 },
+        { r:H*.175, th:3.0, spd:-0.28, notch: 8, col:GOLD,  alpha:0.65 },
+        { r:H*.130, th:1.4, spd: 0.42, notch:16, col:CYAN,  alpha:0.45 },
+        { r:H*.090, th:4.5, spd:-0.60, notch: 6, col:GOLD,  alpha:0.72 },
+        { r:H*.052, th:2.0, spd: 0.90, notch: 4, col:WHITE, alpha:0.80 },
+      ];
 
-    /* 4) particles */
-    for(let i=0;i<PT;i++){
-      ptPos[i*2]   +=ptVel[i*2]   +0.008*Math.sin(T*0.5+i*0.4);
-      ptPos[i*2+1] +=ptVel[i*2+1] +0.008*Math.cos(T*0.4+i*0.3);
-      if(ptPos[i*2]<0)    ptVel[i*2]   = Math.abs(ptVel[i*2]);
-      if(ptPos[i*2]>W)    ptVel[i*2]   =-Math.abs(ptVel[i*2]);
-      if(ptPos[i*2+1]<0)  ptVel[i*2+1] = Math.abs(ptVel[i*2+1]);
-      if(ptPos[i*2+1]>H)  ptVel[i*2+1] =-Math.abs(ptVel[i*2+1]);
+      for(const rd of ringDefs){
+        const rot  = T * rd.spd;
+        const pulse = 1.0 + 0.04 * Math.sin(T * 1.6 + rd.r);
+        const r    = rd.r * pulse;
+        const gap  = 0.10; /* notch arc size in radians */
+
+        for(let n = 0; n < rd.notch; n++){
+          const segStart = rot + (n / rd.notch) * Math.PI*2 + gap*0.5;
+          const segEnd   = rot + ((n+1) / rd.notch) * Math.PI*2 - gap*0.5;
+          const a = rd.alpha * (0.7 + 0.3*Math.sin(T*0.8 + n));
+          arcSegments(vP, vA, vC, cx, cy, r, rd.th, segStart, segEnd, 12, rd.col, a);
+        }
+
+        /* tick marks at notch positions */
+        for(let n = 0; n < rd.notch; n++){
+          const an = rot + (n / rd.notch) * Math.PI*2;
+          const ix = cx + Math.cos(an) * (r - rd.th*3);
+          const iy = cy + Math.sin(an) * (r - rd.th*3);
+          const ox = cx + Math.cos(an) * (r + rd.th*2);
+          const oy = cy + Math.sin(an) * (r + rd.th*2);
+          const nx = -Math.sin(an)*0.8, ny = Math.cos(an)*0.8;
+          vP.push(ix+nx,iy+ny, ix-nx,iy-ny, ox+nx,oy+ny,
+                  ix-nx,iy-ny, ox-nx,oy-ny, ox+nx,oy+ny);
+          for(let v=0;v<6;v++){ vA.push(rd.alpha*.9); vC.push(...rd.col); }
+        }
+      }
+
+      /* central dot / core */
+      const coreR = H*.018;
+      arcSegments(vP,vA,vC, cx,cy, coreR, coreR, 0, Math.PI*2, 24, WHITE, 0.90);
+
+      gl.useProgram(ringProg);
+      gl.uniform2f(ring_uRes, W, H);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, ringPosBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vP), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(ring_aPos);
+      gl.vertexAttribPointer(ring_aPos, 2, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, ringAlpBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vA), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(ring_aAlpha);
+      gl.vertexAttribPointer(ring_aAlpha, 1, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, ringColBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vC), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(ring_aCol);
+      gl.vertexAttribPointer(ring_aCol, 3, gl.FLOAT, false, 0, 0);
+
+      gl.drawArrays(gl.TRIANGLES, 0, vP.length/2);
     }
-    gl.useProgram(ptProg);
-    gl.uniform2f(pt_uRes, W, H);
-    gl.uniform1f(pt_uT, T);
-    gl.bindBuffer(gl.ARRAY_BUFFER, ptPosBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, ptPos, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(pt_aPos);
-    gl.vertexAttribPointer(pt_aPos, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, ptSzBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, ptSz, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(pt_aSz);
-    gl.vertexAttribPointer(pt_aSz, 1, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, ptHueBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, ptHue, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(pt_aHue);
-    gl.vertexAttribPointer(pt_aHue, 1, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(gl.POINTS, 0, PT);
+
+    /* ── 4. DATA STREAM PARTICLES ───────────────────── */
+    {
+      for(let c = 0; c < COLS; c++){
+        stColO[c] = (stColO[c] + stColV[c] * 0.016) % 1.0;
+        for(let r = 0; r < PER; r++){
+          const i   = c * PER + r;
+          const frac = (r / PER + stColO[c]) % 1.0;
+          stPos[i*2]   = stColX[c] * W;
+          stPos[i*2+1] = frac * H * 1.1 - H*0.05;
+          /* brightness: head of trail is bright, tail fades */
+          const headDist = Math.abs(frac - stColO[c] % 1.0);
+          stBri[i] = Math.pow(1.0 - Math.min(1, (r/(PER-1))), 2.2);
+        }
+      }
+
+      gl.useProgram(streamProg);
+      gl.uniform2f(st_uRes, W, H);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, stPosBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, stPos, gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(st_aPos);
+      gl.vertexAttribPointer(st_aPos, 2, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, stSzBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, stSz, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(st_aSz);
+      gl.vertexAttribPointer(st_aSz, 1, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, stBriBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, stBri, gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(st_aBright);
+      gl.vertexAttribPointer(st_aBright, 1, gl.FLOAT, false, 0, 0);
+
+      gl.drawArrays(gl.POINTS, 0, ST_N);
+    }
 
     requestAnimationFrame(draw);
   }

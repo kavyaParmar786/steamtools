@@ -7,28 +7,29 @@
 
 :root {
   /* ── palette */
-  --bg:           #03040a;
-  --bg2:          #07090f;
-  --bg-card:      rgba(10, 13, 22, 0.72);
-  --bg-card-hover:rgba(14, 18, 30, 0.90);
+  --bg:           #03040d;
+  --bg2:          #060810;
+  --bg-card:      rgba(6, 12, 26, 0.80);
+  --bg-card-hover:rgba(10, 18, 36, 0.92);
+  --cyan:         #00d4ff;
+  --cyan-dim:     rgba(0, 212, 255, 0.10);
+  --cyan-glow:    rgba(0, 212, 255, 0.28);
   --gold:         #e8b84b;
   --gold-dim:     rgba(232, 184, 75, 0.12);
   --gold-glow:    rgba(232, 184, 75, 0.25);
   --steel:        #5b8fb9;
-  --steel-dim:    rgba(91, 143, 185, 0.12);
   --crimson:      #b84c4c;
-  --text:         #c8c2ba;
-  --text-bright:  #ede8e0;
-  --muted:        #5a6270;
-  --border:       rgba(232, 184, 75, 0.07);
-  --border-hover: rgba(232, 184, 75, 0.22);
+  --text:         #b8c8d8;
+  --text-bright:  #e8f0f8;
+  --muted:        #4a5a6a;
+  --border:       rgba(0, 212, 255, 0.08);
+  --border-hover: rgba(0, 212, 255, 0.26);
   /* ── type */
   --font-display: 'Bebas Neue', sans-serif;
   --font-body:    'Inter', sans-serif;
   --font-mono:    'JetBrains Mono', monospace;
   /* ── motion */
   --ease:         cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in:      cubic-bezier(0.55, 0, 1, 0.45);
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
