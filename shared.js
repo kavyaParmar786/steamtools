@@ -1,7 +1,7 @@
 /**
- * STEAMTOOLS — Shared
- * WebGL: Minimal, cinematic. Straw Hat palette.
- * Deep black ocean · warm gold · steel blue · crimson ribbon
+ * STEAMTOOLS — WebGL Scene
+ * Concept: DEEP SEA SONAR — crystalline coral structures + sonar pulses
+ * Straw Hat palette: deep ocean black, warm gold, steel blue, crimson
  */
 
 function initWebGL() {
@@ -11,162 +11,23 @@ function initWebGL() {
            || canvas.getContext('experimental-webgl');
   if (!gl) { canvas.style.display = 'none'; return; }
 
+  let W, H;
   function resize() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    gl.viewport(0, 0, W, H);
   }
   resize();
   window.addEventListener('resize', resize);
 
-  /* ── FULL-SCREEN QUAD — ocean + aurora shader ── */
-  const bgVS = `
-    attribute vec2 a_pos;
-    varying vec2 v_uv;
-    void main() { v_uv = a_pos * 0.5 + 0.5; gl_Position = vec4(a_pos, 0.0, 1.0); }
-  `;
-
-  const bgFS = `
-    precision highp float;
-    varying vec2 v_uv;
-    uniform float u_time;
-    uniform vec2  u_mouse;
-    uniform vec2  u_res;
-
-    float hash(vec2 p){ p=fract(p*vec2(127.1,311.7)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
-    float noise(vec2 p){
-      vec2 i=floor(p), f=fract(p);
-      f=f*f*(3.0-2.0*f);
-      return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
-                 mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
-    }
-    float fbm(vec2 p){
-      float v=0.0,a=0.5;
-      for(int i=0;i<6;i++){v+=a*noise(p);p=p*2.03+vec2(1.7,9.2);a*=0.5;}
-      return v;
-    }
-
-    void main(){
-      vec2 uv  = v_uv;
-      vec2 muv = u_mouse / u_res;
-      float t  = u_time * 0.08;
-
-      // ── Deep ocean base
-      vec3 deep   = vec3(0.02, 0.03, 0.07);
-      vec3 abyss  = vec3(0.01, 0.01, 0.04);
-
-      // ── Slow FBM warp
-      vec2 q = vec2(fbm(uv*2.4 + t), fbm(uv*2.4 + vec2(5.2,1.3) + t*0.7));
-      float n = fbm(uv*1.8 + q*0.55 + t*0.4);
-
-      // ── Straw Hat palette aurora bands
-      // Gold: #e8b84b  → (0.91, 0.72, 0.29)
-      // Steel blue: #5b8fb9  → (0.36, 0.56, 0.73)
-      // Crimson: #b84c4c → (0.72, 0.30, 0.30)
-      vec3 gold    = vec3(0.91, 0.72, 0.29);
-      vec3 steel   = vec3(0.36, 0.56, 0.73);
-      vec3 crimson = vec3(0.72, 0.30, 0.30);
-
-      // Layered aurora bands
-      float band1 = smoothstep(0.38, 0.62, n + 0.12*sin(uv.x*4.0 + t));
-      float band2 = smoothstep(0.52, 0.70, fbm(uv*3.0 - q*0.4 + t*0.6));
-      float band3 = smoothstep(0.60, 0.75, fbm(uv*2.2 + vec2(3.1,0.0) + t*0.3));
-
-      // Mouse warmth
-      float md = length(uv - muv);
-      float mw = smoothstep(0.45, 0.0, md) * 0.18;
-
-      vec3 col = mix(abyss, deep, uv.y * 0.7 + 0.3);
-      col = mix(col, gold,    band1 * 0.22);
-      col = mix(col, steel,   band2 * 0.18);
-      col = mix(col, crimson, band3 * 0.09);
-      col += gold * mw;
-
-      // Vignette
-      float v = uv.x*uv.y*(1.0-uv.x)*(1.0-uv.y);
-      col *= smoothstep(0.0, 0.18, v * 12.0);
-
-      gl_FragColor = vec4(col, 1.0);
-    }
-  `;
-
-  /* ── PARTICLES ── */
-  const ptVS = `
-    attribute vec2  a_pos;
-    attribute float a_size;
-    attribute float a_alpha;
-    attribute float a_type;   /* 0=gold star, 1=steel, 2=crimson accent */
-    uniform   vec2  u_res;
-    uniform   float u_time;
-    uniform   vec2  u_mouse;
-    varying   float v_alpha;
-    varying   float v_type;
-    void main(){
-      vec2 pos = a_pos;
-      /* gentle mouse repel */
-      vec2 diff = pos - u_mouse;
-      float d   = length(diff);
-      float rep = smoothstep(120.0, 0.0, d);
-      pos += normalize(diff + vec2(0.001)) * rep * 30.0;
-
-      vec2 clip = (pos / u_res) * 2.0 - 1.0;
-      clip.y = -clip.y;
-      gl_Position  = vec4(clip, 0.0, 1.0);
-      float pulse  = 1.0 + 0.25 * sin(u_time * 2.5 + a_type * 3.7 + a_alpha * 6.28);
-      gl_PointSize = a_size * pulse;
-      v_alpha = a_alpha * (1.0 - rep * 0.5);
-      v_type  = a_type;
-    }
-  `;
-
-  const ptFS = `
-    precision mediump float;
-    varying float v_alpha;
-    varying float v_type;
-    uniform float u_time;
-    void main(){
-      vec2 c = gl_PointCoord - 0.5;
-      float r = length(c);
-      if(r > 0.5) discard;
-
-      /* soft glow disk */
-      float core = 1.0 - smoothstep(0.0, 0.15, r);
-      float halo = 1.0 - smoothstep(0.0, 0.5,  r);
-
-      /* palette per type */
-      vec3 col;
-      if(v_type < 0.5){
-        col = mix(vec3(0.91,0.72,0.29), vec3(1.0,0.95,0.70), core);   /* gold */
-      } else if(v_type < 1.5){
-        col = mix(vec3(0.36,0.56,0.73), vec3(0.65,0.82,0.95), core);  /* steel blue */
-      } else {
-        col = mix(vec3(0.72,0.30,0.30), vec3(1.0,0.60,0.50), core);   /* crimson */
-      }
-
-      float a = v_alpha * (halo * 0.55 + core * 0.9);
-      gl_FragColor = vec4(col, clamp(a, 0.0, 1.0));
-    }
-  `;
-
-  /* ── RING SHADER ── */
-  const ringVS = `
-    attribute vec2 a_pos;
-    uniform   vec2 u_res;
-    void main(){
-      vec2 clip = (a_pos / u_res) * 2.0 - 1.0;
-      clip.y = -clip.y;
-      gl_Position = vec4(clip, 0.0, 1.0);
-    }
-  `;
-  const ringFS = `
-    precision mediump float;
-    uniform vec4 u_color;
-    void main(){ gl_FragColor = u_color; }
-  `;
-
-  /* ── compile ── */
-  function prog(vs, fs){
-    function sh(t,s){ const x=gl.createShader(t); gl.shaderSource(x,s); gl.compileShader(x); return x; }
+  /* ─── COMPILE HELPERS ─────────────────────────────── */
+  function sh(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  function prog(vs, fs) {
     const p = gl.createProgram();
     gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
     gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
@@ -174,172 +35,452 @@ function initWebGL() {
     return p;
   }
 
-  const bgProg   = prog(bgVS,   bgFS);
-  const ptProg   = prog(ptVS,   ptFS);
-  const ringProg = prog(ringVS, ringFS);
+  /* ══════════════════════════════════════════════════════
+     PROGRAM 1 — BACKGROUND: deep ocean gradient + sonar
+  ══════════════════════════════════════════════════════ */
+  const bgProg = prog(`
+    attribute vec2 a_pos;
+    varying vec2 v_uv;
+    void main(){ v_uv = a_pos*.5+.5; gl_Position=vec4(a_pos,0,1); }
+  `, `
+    precision highp float;
+    varying vec2 v_uv;
+    uniform float u_t;
+    uniform vec2 u_mouse;
+    uniform vec2 u_res;
+    uniform vec2 u_sonar[6];
+    uniform float u_sonarAge[6];
 
-  /* quad */
-  const qBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, qBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]), gl.STATIC_DRAW);
+    void main(){
+      vec2 uv = v_uv;
+      vec2 p  = uv * u_res;
 
-  /* bg uniforms */
-  gl.useProgram(bgProg);
-  const bgPosL  = gl.getAttribLocation(bgProg,  'a_pos');
-  const bgTimeL = gl.getUniformLocation(bgProg,  'u_time');
-  const bgMuseL = gl.getUniformLocation(bgProg,  'u_mouse');
-  const bgResL  = gl.getUniformLocation(bgProg,  'u_res');
+      /* deep ocean base: nearly black at top, very dark navy at bottom */
+      vec3 top    = vec3(0.010, 0.012, 0.022);
+      vec3 bottom = vec3(0.018, 0.026, 0.050);
+      vec3 col = mix(top, bottom, uv.y);
 
-  /* ── PARTICLES  ── only 180, clean field */
-  const N = 180;
-  const pPos   = new Float32Array(N*2);
-  const pVel   = new Float32Array(N*2);
-  const pSize  = new Float32Array(N);
-  const pAlpha = new Float32Array(N);
-  const pType  = new Float32Array(N);
+      /* subtle horizontal depth bands — like bioluminescent layers */
+      float band = sin(uv.y * 18.0 + u_t * 0.15) * 0.5 + 0.5;
+      col += vec3(0.02, 0.04, 0.06) * band * band * 0.18;
 
-  for(let i=0;i<N;i++){
-    pPos[i*2]   = Math.random() * window.innerWidth;
-    pPos[i*2+1] = Math.random() * window.innerHeight;
-    const sp = 0.06 + Math.random()*0.18;
-    const an = Math.random()*Math.PI*2;
-    pVel[i*2]   = Math.cos(an)*sp;
-    pVel[i*2+1] = Math.sin(an)*sp;
-    /* tiered sizes: majority tiny (0.5–2), some medium (3–5), few large (6–10) */
-    const tier = Math.random();
-    pSize[i]  = tier<0.65 ? 0.8+Math.random()*1.5
-              : tier<0.88 ? 3.0+Math.random()*2.5
-              :              6.0+Math.random()*4.5;
-    pAlpha[i] = 0.35 + Math.random()*0.55;
-    /* 65% gold, 25% steel, 10% crimson — matching logo */
-    pType[i]  = Math.random()<0.65 ? 0 : Math.random()<0.72 ? 1 : 2;
-  }
+      /* sonar rings — 6 independent pulses */
+      for(int i = 0; i < 6; i++){
+        vec2 src = u_sonar[i];
+        float age = u_sonarAge[i];            /* 0..1 */
+        float d   = length(p - src);
+        float maxR = min(u_res.x, u_res.y) * 0.82;
+        float r   = age * maxR;
+        float ring = 1.0 - abs(d - r) / 4.0;
+        ring = max(0.0, ring);
+        float fade = (1.0 - age) * (1.0 - age);
 
-  const posBuf   = gl.createBuffer();
-  const sizeBuf  = gl.createBuffer();
-  const alphaBuf = gl.createBuffer();
-  const typeBuf  = gl.createBuffer();
+        /* gold primary ring */
+        vec3 goldCol  = vec3(0.91, 0.72, 0.29);
+        vec3 blueCol  = vec3(0.36, 0.56, 0.73);
+        vec3 ringCol  = mix(goldCol, blueCol, float(i) / 5.0);
+        col += ringCol * ring * fade * 0.22;
 
-  gl.useProgram(ptProg);
-  const ptPosL   = gl.getAttribLocation(ptProg, 'a_pos');
-  const ptSizeL  = gl.getAttribLocation(ptProg, 'a_size');
-  const ptAlphaL = gl.getAttribLocation(ptProg, 'a_alpha');
-  const ptTypeL  = gl.getAttribLocation(ptProg, 'a_type');
-  const ptResL   = gl.getUniformLocation(ptProg, 'u_res');
-  const ptTimeL  = gl.getUniformLocation(ptProg, 'u_time');
-  const ptMouseL = gl.getUniformLocation(ptProg, 'u_mouse');
+        /* soft interior fill */
+        float fill = smoothstep(r + 12.0, r - 60.0, d) * smoothstep(0.0, 80.0, d);
+        col += ringCol * fill * fade * 0.025;
+      }
 
-  /* ring geom */
-  const ringPosL  = gl.getAttribLocation(ringProg, 'a_pos');
-  const ringResL  = gl.getUniformLocation(ringProg, 'u_res');
-  const ringColL  = gl.getUniformLocation(ringProg, 'u_color');
-  const ringBuf   = gl.createBuffer();
+      /* mouse proximity warm glow */
+      float md = length(p - u_mouse) / u_res.x;
+      col += vec3(0.91, 0.72, 0.29) * smoothstep(0.35, 0.0, md) * 0.06;
 
-  /* Only 2 clean slow rings — centered, minimal */
-  const RINGS = [
-    { px:0.5, py:0.38, r:210, thick:0.9, speed:0.06,  col:[0.91,0.72,0.29], alpha:0.18, phase:0 },
-    { px:0.5, py:0.38, r:310, thick:0.5, speed:-0.04, col:[0.36,0.56,0.73], alpha:0.10, phase:1.6 },
-  ];
+      /* vignette */
+      float v = uv.x * uv.y * (1.0-uv.x) * (1.0-uv.y);
+      col *= smoothstep(0.0, 0.14, v * 14.0);
 
-  function ringVerts(cx,cy,r,thick,segs){
-    const v=[];
-    for(let i=0;i<segs;i++){
-      const a0=(i/segs)*Math.PI*2, a1=((i+1)/segs)*Math.PI*2;
-      v.push(
-        cx+Math.cos(a0)*r,       cy+Math.sin(a0)*r,
-        cx+Math.cos(a0)*(r-thick),cy+Math.sin(a0)*(r-thick),
-        cx+Math.cos(a1)*r,       cy+Math.sin(a1)*r,
-        cx+Math.cos(a1)*(r-thick),cy+Math.sin(a1)*(r-thick),
-        cx+Math.cos(a1)*r,       cy+Math.sin(a1)*r,
-        cx+Math.cos(a0)*(r-thick),cy+Math.sin(a0)*(r-thick)
-      );
+      gl_FragColor = vec4(col, 1.0);
     }
-    return v;
+  `);
+
+  const bgQuad = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, bgQuad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]), gl.STATIC_DRAW);
+  gl.useProgram(bgProg);
+  const bg_aPos      = gl.getAttribLocation(bgProg,  'a_pos');
+  const bg_uT        = gl.getUniformLocation(bgProg,  'u_t');
+  const bg_uMouse    = gl.getUniformLocation(bgProg,  'u_mouse');
+  const bg_uRes      = gl.getUniformLocation(bgProg,  'u_res');
+  const bg_uSonar    = [];
+  const bg_uSonarAge = [];
+  for(let i=0;i<6;i++){
+    bg_uSonar.push(gl.getUniformLocation(bgProg, `u_sonar[${i}]`));
+    bg_uSonarAge.push(gl.getUniformLocation(bgProg, `u_sonarAge[${i}]`));
   }
 
-  let mouse = { x: window.innerWidth*0.5, y: window.innerHeight*0.5 };
-  document.addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
+  /* ══════════════════════════════════════════════════════
+     PROGRAM 2 — CRYSTAL LINES (geometry shader via CPU)
+  ══════════════════════════════════════════════════════ */
+  const lineProg = prog(`
+    attribute vec2 a_pos;
+    attribute float a_alpha;
+    uniform vec2 u_res;
+    varying float v_a;
+    void main(){
+      vec2 clip = (a_pos/u_res)*2.0-1.0; clip.y=-clip.y;
+      gl_Position=vec4(clip,0,1); v_a=a_alpha;
+    }
+  `, `
+    precision mediump float;
+    uniform vec4 u_col;
+    varying float v_a;
+    void main(){ gl_FragColor=vec4(u_col.rgb, u_col.a*v_a); }
+  `);
+  const line_aPos   = gl.getAttribLocation(lineProg,  'a_pos');
+  const line_aAlpha = gl.getAttribLocation(lineProg,  'a_alpha');
+  const line_uRes   = gl.getUniformLocation(lineProg, 'u_res');
+  const line_uCol   = gl.getUniformLocation(lineProg, 'u_col');
+  const linePosBuf  = gl.createBuffer();
+  const lineAlpBuf  = gl.createBuffer();
 
+  /* ══════════════════════════════════════════════════════
+     PROGRAM 3 — PARTICLES (sonar-lit glowing orbs)
+  ══════════════════════════════════════════════════════ */
+  const ptProg = prog(`
+    attribute vec2 a_pos;
+    attribute float a_size;
+    attribute float a_base;
+    uniform vec2 u_res;
+    uniform float u_t;
+    uniform vec2 u_sonar[6];
+    uniform float u_sonarAge[6];
+    varying float v_bright;
+    varying float v_base;
+    void main(){
+      vec2 clip = (a_pos/u_res)*2.0-1.0; clip.y=-clip.y;
+      gl_Position=vec4(clip,0,1);
+      float maxR = min(u_res.x, u_res.y)*0.82;
+      float lit=0.0;
+      for(int i=0;i<6;i++){
+        float age=u_sonarAge[i];
+        float r=age*maxR;
+        float d=length(a_pos - u_sonar[i]);
+        float ring=1.0-abs(d-r)/28.0;
+        lit+=max(0.0,ring)*(1.0-age)*(1.0-age)*2.2;
+      }
+      float pulse = 1.0 + 0.3*sin(u_t*2.2 + a_base*6.28);
+      gl_PointSize = a_size * (1.0 + lit*1.8) * pulse;
+      v_bright = lit;
+      v_base   = a_base;
+    }
+  `, `
+    precision mediump float;
+    varying float v_bright;
+    varying float v_base;
+    void main(){
+      vec2 c=gl_PointCoord-.5; float r=length(c);
+      if(r>.5) discard;
+      float glow = 1.0-smoothstep(0.0,.5,r);
+      float core = 1.0-smoothstep(0.0,.18,r);
+      /* base dim steel blue, lit up to gold */
+      vec3 dimCol  = vec3(0.18, 0.28, 0.42);
+      vec3 goldCol = vec3(0.98, 0.82, 0.38);
+      vec3 blueCol = vec3(0.50, 0.72, 0.92);
+      vec3 litCol  = mix(blueCol, goldCol, v_bright);
+      vec3 col     = mix(dimCol, litCol, min(1.0, v_bright));
+      float alpha  = (glow*0.25 + core*0.6) * (0.18 + v_bright*0.9);
+      gl_FragColor = vec4(col, clamp(alpha,0.0,1.0));
+    }
+  `);
+  const pt_aPos      = gl.getAttribLocation(ptProg, 'a_pos');
+  const pt_aSize     = gl.getAttribLocation(ptProg, 'a_size');
+  const pt_aBase     = gl.getAttribLocation(ptProg, 'a_base');
+  const pt_uRes      = gl.getUniformLocation(ptProg, 'u_res');
+  const pt_uT        = gl.getUniformLocation(ptProg, 'u_t');
+  const pt_uSonar    = [];
+  const pt_uSonarAge = [];
+  for(let i=0;i<6;i++){
+    pt_uSonar.push(gl.getUniformLocation(ptProg, `u_sonar[${i}]`));
+    pt_uSonarAge.push(gl.getUniformLocation(ptProg, `u_sonarAge[${i}]`));
+  }
+  const ptPosBuf  = gl.createBuffer();
+  const ptSizBuf  = gl.createBuffer();
+  const ptBasBuf  = gl.createBuffer();
+
+  /* ─── PARTICLE DATA ───────────────────────────────── */
+  const PT = 220;
+  const ptPos  = new Float32Array(PT*2);
+  const ptSize = new Float32Array(PT);
+  const ptBase = new Float32Array(PT);
+  const ptVel  = new Float32Array(PT*2);
+  for(let i=0;i<PT;i++){
+    ptPos[i*2]   = Math.random() * 1920;
+    ptPos[i*2+1] = Math.random() * 1080;
+    const sp = 0.05 + Math.random() * 0.12;
+    const an = Math.random() * Math.PI * 2;
+    ptVel[i*2]   = Math.cos(an)*sp;
+    ptVel[i*2+1] = Math.sin(an)*sp;
+    const t = Math.random();
+    ptSize[i] = t<0.6 ? 1.2+Math.random()*1.5 : t<0.88 ? 3+Math.random()*2.5 : 5+Math.random()*4;
+    ptBase[i]  = Math.random();
+  }
+
+  /* ─── CRYSTAL STRUCTURES (static geometry) ───────── */
+  /* Each crystal: a vertical spine + radiating facets — built on canvas resize */
+  let crystalVerts = [], crystalAlphas = [], crystalColors = [];
+  function buildCrystals() {
+    crystalVerts  = [];
+    crystalAlphas = [];
+    crystalColors = [];
+
+    /* palette: gold, steel-blue, crimson */
+    const palettes = [
+      [0.91,0.72,0.29],  /* gold */
+      [0.36,0.56,0.73],  /* steel */
+      [0.72,0.30,0.30],  /* crimson */
+      [0.55,0.68,0.80],  /* ice blue */
+      [0.80,0.62,0.22],  /* amber */
+    ];
+
+    /* Spawn ~18 crystal clusters along the bottom half */
+    const N = 18;
+    for(let i=0;i<N;i++){
+      const cx = (i/(N-1)) * W * 1.05 - W*0.025;
+      const cy = H * (0.58 + Math.random()*0.38);
+      const col = palettes[Math.floor(Math.random()*palettes.length)];
+      const arms = 3 + Math.floor(Math.random()*4);  /* 3–6 arms */
+      const baseH = 40 + Math.random()*130;           /* height */
+      const spread = 0.18 + Math.random()*0.32;       /* angle spread */
+
+      for(let a=0;a<arms;a++){
+        const angle = -Math.PI/2 + (a/(arms-1) - 0.5) * Math.PI * spread;
+        const len   = baseH * (0.5 + Math.random()*0.7);
+        const width = 1.5 + Math.random()*2.5;
+        const tipX  = cx + Math.cos(angle)*len;
+        const tipY  = cy + Math.sin(angle)*len;
+
+        /* thin line from base to tip */
+        const dx = tipX-cx, dy = tipY-cy;
+        const nx = -dy/len * width * 0.5;
+        const ny =  dx/len * width * 0.5;
+
+        /* quad for the arm */
+        crystalVerts.push(
+          cx+nx, cy+ny,  cx-nx, cy-ny,  tipX, tipY,
+          cx+nx, cy+ny,  tipX, tipY,  cx-nx, cy-ny
+        );
+        crystalAlphas.push(0.6,0.6,0.05, 0.6,0.05,0.6);
+        for(let v=0;v<6;v++) crystalColors.push(...col);
+
+        /* secondary facet branches on taller arms */
+        if(len > 60 && Math.random() > 0.4){
+          const bpos = 0.35 + Math.random()*0.35;
+          const bx = cx + dx*bpos, by = cy + dy*bpos;
+          const bLen = len * (0.2 + Math.random()*0.28);
+          const bAngle = angle + (Math.random()>0.5?1:-1)*(0.3+Math.random()*0.5);
+          const btx = bx + Math.cos(bAngle)*bLen;
+          const bty = by + Math.sin(bAngle)*bLen;
+          const bl  = Math.hypot(btx-bx, bty-by);
+          const bnx = -(bty-by)/bl*0.8;
+          const bny =  (btx-bx)/bl*0.8;
+          crystalVerts.push(
+            bx+bnx, by+bny,  bx-bnx, by-bny,  btx, bty,
+            bx+bnx, by+bny,  btx, bty,  bx-bnx, by-bny
+          );
+          crystalAlphas.push(0.4,0.4,0.02, 0.4,0.02,0.4);
+          for(let v=0;v<6;v++) crystalColors.push(...col);
+        }
+      }
+
+      /* central spike */
+      const spikeH = baseH * 1.1;
+      const sw = 2.5;
+      const sx = cx, sy = cy - spikeH;
+      crystalVerts.push(cx-sw,cy, cx+sw,cy, sx,sy, cx-sw,cy, sx,sy, cx+sw,cy);
+      crystalAlphas.push(0.7,0.7,0.0, 0.7,0.0,0.7);
+      for(let v=0;v<6;v++) crystalColors.push(...col);
+    }
+  }
+  buildCrystals();
+  window.addEventListener('resize', buildCrystals);
+
+  /* ─── SONAR STATE ─────────────────────────────────── */
+  /* 6 sonar pulses, staggered timings */
+  const SONAR_INTERVAL = 2200; /* ms between births */
+  const SONAR_DUR      = 3200; /* ms lifetime */
+  const sonars = Array.from({length:6}, (_,i)=>({
+    x: 0, y: 0, born: -i * SONAR_INTERVAL * 0.8
+  }));
+  /* Spawn positions: evenly spread, then drift slightly */
+  function pickSonarPos(idx) {
+    const cols = [0.12, 0.30, 0.50, 0.68, 0.85];
+    const c = cols[idx % cols.length];
+    return {
+      x: W * (c + (Math.random()-0.5)*0.08),
+      y: H * (0.30 + Math.random()*0.35)
+    };
+  }
+
+  /* ─── CRYSTAL LINE GPU BUFFERS ────────────────────── */
+  const crLinePosBuf = gl.createBuffer();
+  const crLineAlpBuf = gl.createBuffer();
+  const crLineColBuf = gl.createBuffer();
+
+  /* crystal line prog with per-vertex color */
+  const crLineProg = prog(`
+    attribute vec2  a_pos;
+    attribute float a_alpha;
+    attribute vec3  a_col;
+    uniform vec2 u_res;
+    uniform float u_t;
+    uniform vec2  u_sonar[6];
+    uniform float u_sonarAge[6];
+    varying float v_a;
+    varying vec3  v_col;
+    void main(){
+      vec2 clip = (a_pos/u_res)*2.0-1.0; clip.y=-clip.y;
+      gl_Position=vec4(clip,0,1);
+      float maxR=min(u_res.x,u_res.y)*0.82;
+      float lit=0.0;
+      for(int i=0;i<6;i++){
+        float r=u_sonarAge[i]*maxR;
+        float d=length(a_pos-u_sonar[i]);
+        float ring=1.0-abs(d-r)/38.0;
+        lit+=max(0.0,ring)*(1.0-u_sonarAge[i])*(1.0-u_sonarAge[i])*2.5;
+      }
+      v_a   = a_alpha * (0.12 + lit*1.4);
+      v_col = a_col;
+    }
+  `, `
+    precision mediump float;
+    varying float v_a;
+    varying vec3  v_col;
+    void main(){ gl_FragColor=vec4(v_col, clamp(v_a,0.0,1.0)); }
+  `);
+  const cr_aPos      = gl.getAttribLocation(crLineProg,  'a_pos');
+  const cr_aAlpha    = gl.getAttribLocation(crLineProg,  'a_alpha');
+  const cr_aCol      = gl.getAttribLocation(crLineProg,  'a_col');
+  const cr_uRes      = gl.getUniformLocation(crLineProg, 'u_res');
+  const cr_uT        = gl.getUniformLocation(crLineProg, 'u_t');
+  const cr_uSonar    = [];
+  const cr_uSonarAge = [];
+  for(let i=0;i<6;i++){
+    cr_uSonar.push(gl.getUniformLocation(crLineProg, `u_sonar[${i}]`));
+    cr_uSonarAge.push(gl.getUniformLocation(crLineProg, `u_sonarAge[${i}]`));
+  }
+
+  /* ─── MOUSE ───────────────────────────────────────── */
+  let mouse = { x: 0, y: 0 };
+  document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  /* ─── MAIN LOOP ───────────────────────────────────── */
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-  let T = 0;
-  function draw(){
-    T += 0.016;
-    const W = canvas.width, H = canvas.height;
+  let start = null;
+  function draw(ts) {
+    if(!start) start = ts;
+    const T = (ts - start) * 0.001;
+    const now = ts;
+    W = canvas.width; H = canvas.height;
 
-    /* 1) ocean background */
-    gl.useProgram(bgProg);
-    gl.uniform1f(bgTimeL, T);
-    gl.uniform2f(bgMuseL, mouse.x, mouse.y);
-    gl.uniform2f(bgResL, W, H);
-    gl.bindBuffer(gl.ARRAY_BUFFER, qBuf);
-    gl.enableVertexAttribArray(bgPosL);
-    gl.vertexAttribPointer(bgPosL, 2, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    /* 2) two clean orbit rings */
-    gl.useProgram(ringProg);
-    gl.uniform2f(ringResL, W, H);
-    for(const rg of RINGS){
-      const cx = rg.px*W + Math.cos(T*rg.speed+rg.phase)*6;
-      const cy = rg.py*H + Math.sin(T*rg.speed*1.3+rg.phase)*4;
-      const pls = 1.0 + 0.04*Math.sin(T*1.2+rg.phase);
-      const verts = ringVerts(cx, cy, rg.r*pls, rg.thick, 120);
-      gl.bindBuffer(gl.ARRAY_BUFFER, ringBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.DYNAMIC_DRAW);
-      gl.enableVertexAttribArray(ringPosL);
-      gl.vertexAttribPointer(ringPosL, 2, gl.FLOAT, false, 0, 0);
-      const a = rg.alpha * (0.85 + 0.15*Math.sin(T*1.8+rg.phase));
-      gl.uniform4f(ringColL, rg.col[0], rg.col[1], rg.col[2], a);
-      gl.drawArrays(gl.TRIANGLES, 0, verts.length/2);
+    /* update sonar pulse ages */
+    const sonarX   = new Float32Array(6);
+    const sonarY   = new Float32Array(6);
+    const sonarAge = new Float32Array(6);
+    for(let i=0;i<6;i++){
+      let age = (now - sonars[i].born) / SONAR_DUR;
+      if(age > 1.0) {
+        sonars[i].born = now;
+        const p = pickSonarPos(i);
+        sonars[i].x = p.x; sonars[i].y = p.y;
+        age = 0;
+      }
+      sonarX[i]   = sonars[i].x;
+      sonarY[i]   = sonars[i].y;
+      sonarAge[i] = Math.max(0, age);
     }
 
-    /* 3) update + draw particles */
-    for(let i=0;i<N;i++){
-      pPos[i*2]   += pVel[i*2]   + 0.008*Math.sin(T*0.6+i*0.4);
-      pPos[i*2+1] += pVel[i*2+1] + 0.008*Math.cos(T*0.5+i*0.3);
-      if(pPos[i*2]<0)   pVel[i*2]   =  Math.abs(pVel[i*2]);
-      if(pPos[i*2]>W)   pVel[i*2]   = -Math.abs(pVel[i*2]);
-      if(pPos[i*2+1]<0) pVel[i*2+1] =  Math.abs(pVel[i*2+1]);
-      if(pPos[i*2+1]>H) pVel[i*2+1] = -Math.abs(pVel[i*2+1]);
+    /* ── 1) BG + sonar rings */
+    gl.useProgram(bgProg);
+    gl.uniform1f(bg_uT, T);
+    gl.uniform2f(bg_uMouse, mouse.x, H - mouse.y);
+    gl.uniform2f(bg_uRes, W, H);
+    for(let i=0;i<6;i++){
+      gl.uniform2f(bg_uSonar[i], sonarX[i], H - sonarY[i]);
+      gl.uniform1f(bg_uSonarAge[i], sonarAge[i]);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, bgQuad);
+    gl.enableVertexAttribArray(bg_aPos);
+    gl.vertexAttribPointer(bg_aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    /* ── 2) crystal structures — sonar-lit */
+    gl.useProgram(crLineProg);
+    gl.uniform2f(cr_uRes, W, H);
+    gl.uniform1f(cr_uT, T);
+    for(let i=0;i<6;i++){
+      gl.uniform2f(cr_uSonar[i], sonarX[i], sonarY[i]);
+      gl.uniform1f(cr_uSonarAge[i], sonarAge[i]);
+    }
+    const cvf = new Float32Array(crystalVerts);
+    const caf = new Float32Array(crystalAlphas);
+    const ccf = new Float32Array(crystalColors);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, crLinePosBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, cvf, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(cr_aPos);
+    gl.vertexAttribPointer(cr_aPos, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, crLineAlpBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, caf, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(cr_aAlpha);
+    gl.vertexAttribPointer(cr_aAlpha, 1, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, crLineColBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, ccf, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(cr_aCol);
+    gl.vertexAttribPointer(cr_aCol, 3, gl.FLOAT, false, 0, 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, cvf.length/2);
+
+    /* ── 3) particles — drift + sonar-lit */
+    for(let i=0;i<PT;i++){
+      ptPos[i*2]   += ptVel[i*2]   + Math.sin(T*0.4 + i*0.5)*0.015;
+      ptPos[i*2+1] += ptVel[i*2+1] + Math.cos(T*0.3 + i*0.4)*0.015;
+      if(ptPos[i*2]<0)   ptVel[i*2]   =  Math.abs(ptVel[i*2]);
+      if(ptPos[i*2]>W)   ptVel[i*2]   = -Math.abs(ptVel[i*2]);
+      if(ptPos[i*2+1]<0) ptVel[i*2+1] =  Math.abs(ptVel[i*2+1]);
+      if(ptPos[i*2+1]>H) ptVel[i*2+1] = -Math.abs(ptVel[i*2+1]);
     }
 
     gl.useProgram(ptProg);
-    gl.uniform2f(ptResL, W, H);
-    gl.uniform1f(ptTimeL, T);
-    gl.uniform2f(ptMouseL, mouse.x, mouse.y);
+    gl.uniform2f(pt_uRes, W, H);
+    gl.uniform1f(pt_uT, T);
+    for(let i=0;i<6;i++){
+      gl.uniform2f(pt_uSonar[i], sonarX[i], sonarY[i]);
+      gl.uniform1f(pt_uSonarAge[i], sonarAge[i]);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, ptPosBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, ptPos, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(pt_aPos);
+    gl.vertexAttribPointer(pt_aPos, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, pPos, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(ptPosL);
-    gl.vertexAttribPointer(ptPosL, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ptSizBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, ptSize, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(pt_aSize);
+    gl.vertexAttribPointer(pt_aSize, 1, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, pSize, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(ptSizeL);
-    gl.vertexAttribPointer(ptSizeL, 1, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ptBasBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, ptBase, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(pt_aBase);
+    gl.vertexAttribPointer(pt_aBase, 1, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, alphaBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, pAlpha, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(ptAlphaL);
-    gl.vertexAttribPointer(ptAlphaL, 1, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, typeBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, pType, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(ptTypeL);
-    gl.vertexAttribPointer(ptTypeL, 1, gl.FLOAT, false, 0, 0);
-
-    gl.drawArrays(gl.POINTS, 0, N);
+    gl.drawArrays(gl.POINTS, 0, PT);
 
     requestAnimationFrame(draw);
   }
-  draw();
+  requestAnimationFrame(draw);
 }
 
 function initScrollReveal(){
   const io=new IntersectionObserver(entries=>{
-    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target); }});
   },{threshold:0.1});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 }
