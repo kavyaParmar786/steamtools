@@ -488,3 +488,87 @@ footer {
   .footer-bottom { flex-direction: column; }
   .cta-card { padding: 48px 24px; }
 }
+
+/* ── OCEAN CANVAS overrides ── */
+#ocean-bg {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  width: 100%; height: 100%;
+}
+
+/* Hero text — white with shadows to read over the real ocean */
+.hero h1 {
+  color: #fff !important;
+  text-shadow: 0 4px 40px rgba(5,20,60,0.55), 0 1px 0 rgba(5,20,60,0.3);
+}
+.hero-sub {
+  color: rgba(220, 240, 255, 0.88) !important;
+  text-shadow: 0 2px 16px rgba(5,20,60,0.4);
+}
+.hero-tag {
+  background: rgba(10, 30, 70, 0.45) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+  color: rgba(220,240,255,0.9) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* Section backgrounds — frosted glass panels so ocean shows through */
+.features, .vault, .cta-section {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(2px);
+}
+footer {
+  background: rgba(5, 20, 55, 0.55) !important;
+  backdrop-filter: blur(24px) !important;
+  border-top-color: rgba(255,255,255,0.15) !important;
+}
+.footer-brand p, .footer-links a, .footer-bottom p {
+  color: rgba(190,215,245,0.75) !important;
+}
+.footer-logo-text { color: #fff !important; }
+.footer-links h4 { color: rgba(160,200,240,0.7) !important; }
+.section-title { color: #fff !important; text-shadow: 0 2px 20px rgba(5,20,60,0.4); }
+.section-tag { color: rgba(160,210,255,0.8) !important; }
+
+/* Feature and CTA cards — deeper glass */
+.feature-card {
+  background: rgba(5, 25, 70, 0.32) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  box-shadow: 0 4px 32px rgba(5,20,60,0.2), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+.feature-card:hover {
+  background: rgba(5, 25, 70, 0.48) !important;
+  box-shadow: 0 16px 48px rgba(5,20,60,0.3), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+.feature-card h3 { color: #fff !important; }
+.feature-card p  { color: rgba(180,215,250,0.8) !important; }
+
+.cta-card {
+  background: rgba(5, 25, 70, 0.38) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  box-shadow: 0 8px 48px rgba(5,20,60,0.25), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+.cta-card h2 { color: #fff !important; }
+.cta-card p  { color: rgba(180,215,250,0.85) !important; }
+
+/* Stats bar */
+.hero-stats {
+  background: rgba(5, 25, 70, 0.42) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  box-shadow: 0 8px 32px rgba(5,20,60,0.3), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+.stat-num { color: #fff !important; }
+.stat-label { color: rgba(180,215,250,0.75) !important; }
+.stat-divider { background: rgba(255,255,255,0.15) !important; }
+
+/* Filter buttons */
+.filter-btn {
+  background: rgba(5,25,70,0.35) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  color: rgba(180,215,250,0.8) !important;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: rgba(5,25,70,0.6) !important;
+  border-color: rgba(255,255,255,0.3) !important;
+  color: #fff !important;
+}

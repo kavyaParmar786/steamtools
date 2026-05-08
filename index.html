@@ -9,7 +9,7 @@
 </head>
 <body>
 
-<!-- ANIMATED OCEAN BACKGROUND -->
+<!-- REAL WEBGL OCEAN BACKGROUND -->
 <canvas id="ocean-bg"></canvas>
 
 <!-- DYNAMIC ISLAND NAV -->
@@ -191,136 +191,18 @@
   </div>
 </footer>
 
+<script src="ocean.js"></script>
 <script src="app.js"></script>
 <script src="shared.js"></script>
 <script>
-// ── OCEAN CANVAS ANIMATION ────────────────────────────────
-(function() {
-  const canvas = document.getElementById('ocean-bg');
-  const ctx = canvas.getContext('2d');
-  let W, H, t = 0;
-
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  // Wave parameters
-  const waveConfigs = [
-    { amp: 0.025, freq: 0.6, speed: 0.0008, phase: 0,    alpha: 0.22, colorA: '#89cff0', colorB: '#b8dff5' },
-    { amp: 0.03,  freq: 0.4, speed: 0.0006, phase: 2.1,  alpha: 0.18, colorA: '#6ab8e8', colorB: '#a0d4f0' },
-    { amp: 0.02,  freq: 0.9, speed: 0.0012, phase: 1.0,  alpha: 0.14, colorA: '#c5e8f8', colorB: '#ddf0fa' },
-    { amp: 0.035, freq: 0.25,speed: 0.0004, phase: 3.5,  alpha: 0.12, colorA: '#4da8d8', colorB: '#80c8ee' },
-    { amp: 0.015, freq: 1.4, speed: 0.0015, phase: 0.5,  alpha: 0.10, colorA: '#e0f3fc', colorB: '#ffffff' },
-  ];
-
-  // Floating light bokeh orbs
-  const orbs = Array.from({ length: 18 }, () => ({
-    x: Math.random(),
-    y: Math.random() * 0.7,
-    r: 40 + Math.random() * 120,
-    speed: 0.00008 + Math.random() * 0.00012,
-    phase: Math.random() * Math.PI * 2,
-    alpha: 0.06 + Math.random() * 0.1,
-    hue: 190 + Math.random() * 40,
-  }));
-
-  function drawBackground() {
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0,   '#d6eefa');
-    grad.addColorStop(0.4, '#b8e0f7');
-    grad.addColorStop(0.75,'#8ec9ed');
-    grad.addColorStop(1,   '#5aaad6');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  function drawOrbs(t) {
-    orbs.forEach(o => {
-      const x = (o.x + Math.sin(t * o.speed + o.phase) * 0.08) * W;
-      const y = (o.y + Math.cos(t * o.speed * 0.7 + o.phase) * 0.04) * H;
-      const grad = ctx.createRadialGradient(x, y, 0, x, y, o.r);
-      grad.addColorStop(0, `hsla(${o.hue}, 80%, 90%, ${o.alpha})`);
-      grad.addColorStop(1, `hsla(${o.hue}, 70%, 85%, 0)`);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(x, y, o.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
-
-  function drawWave(cfg, t, waveY) {
-    ctx.save();
-    const grad = ctx.createLinearGradient(0, waveY - cfg.amp * H, 0, H);
-    grad.addColorStop(0, cfg.colorA + '55');
-    grad.addColorStop(1, cfg.colorB + '33');
-    ctx.fillStyle = grad;
-    ctx.globalAlpha = cfg.alpha;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    for (let x = 0; x <= W; x += 3) {
-      const y = waveY
-        + Math.sin(x * cfg.freq * 0.005 + t * cfg.speed * 1000 + cfg.phase) * cfg.amp * H
-        + Math.sin(x * cfg.freq * 0.003 + t * cfg.speed * 700 + cfg.phase * 1.5) * cfg.amp * H * 0.4;
-      ctx.lineTo(x, y);
-    }
-    ctx.lineTo(W, H);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // Subtle caustic shimmer lines
-  function drawCaustics(t) {
-    ctx.save();
-    ctx.globalAlpha = 0.04;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 12; i++) {
-      const x = (i / 12) * W;
-      const wobble = Math.sin(t * 0.0003 + i * 0.8) * 60;
-      ctx.beginPath();
-      ctx.moveTo(x + wobble, H * 0.3);
-      ctx.bezierCurveTo(
-        x + wobble + 40, H * 0.5,
-        x + wobble - 30, H * 0.7,
-        x + wobble + 20, H
-      );
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function draw(timestamp) {
-    t = timestamp;
-    ctx.clearRect(0, 0, W, H);
-    drawBackground();
-    drawOrbs(t);
-
-    // Draw waves bottom-up
-    const waveYBase = H * 0.55;
-    waveConfigs.forEach((cfg, i) => {
-      drawWave(cfg, t, waveYBase + i * (H * 0.06));
-    });
-
-    drawCaustics(t);
-
-    requestAnimationFrame(draw);
-  }
-
-  requestAnimationFrame(draw);
-})();
-
-// ── SCROLL REVEAL ─────────────────────────────────────────
+// Scroll reveal
 const revealEls = document.querySelectorAll('.reveal');
 const ro = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); ro.unobserve(e.target); }});
 }, { threshold: 0.1 });
 revealEls.forEach(el => ro.observe(el));
 
-// ── SMOOTH SCROLL ─────────────────────────────────────────
+// Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const t = document.querySelector(a.getAttribute('href'));
