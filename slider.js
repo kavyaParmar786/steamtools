@@ -23,20 +23,23 @@ class HeroSlider {
   }
 
   renderSlides() {
-    this.container.innerHTML = this.featured.map((game, i) => `
-      <div class="slide" data-index="${i}">
-        <div class="slide-bg-container">
-          <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/library_hero.jpg" 
-               onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/header.jpg'" alt="${game.name}">
+    this.container.innerHTML = this.featured.map((game, i) => {
+      const isLong = game.name.length > 15;
+      return `
+        <div class="slide" data-index="${i}">
+          <div class="slide-bg-container">
+            <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/library_hero.jpg" 
+                 onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/header.jpg'" alt="${game.name}">
+          </div>
+          <div class="slide-title-wrap">
+            <div class="slide-title-huge ${isLong ? 'long-title' : ''}">${game.name}</div>
+          </div>
+          <div class="slide-actions">
+            <button class="btn-editorial" onclick="openGameModal('${game.id}')">Access Vault</button>
+          </div>
         </div>
-        <div class="slide-title-wrap">
-          <div class="slide-title-huge">${game.name}</div>
-        </div>
-        <div class="slide-actions">
-          <button class="btn-editorial" onclick="openGameModal('${game.id}')">Access Vault</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     
     this.slideEls = this.container.querySelectorAll('.slide');
     this.showSlide(0);

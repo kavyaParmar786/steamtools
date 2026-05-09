@@ -302,14 +302,14 @@ nav.scrolled {
 
 .slide-title-huge {
   font-family: 'Outfit', sans-serif;
-  font-size: clamp(40px, 10vw, 180px);
+  font-size: clamp(60px, 11vw, 220px);
   font-weight: 900;
   text-transform: uppercase;
   color: transparent;
   -webkit-text-stroke: 1.5px rgba(255,255,255,0.95);
   paint-order: stroke fill;
   text-shadow: none;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   text-align: center;
   line-height: 1;
@@ -317,6 +317,11 @@ nav.scrolled {
   opacity: 0;
   pointer-events: auto;
   transition: transform 0.8s var(--ease) 0.1s, opacity 0.8s var(--ease) 0.1s, color 0.4s, -webkit-text-stroke 0.4s;
+}
+
+.slide-title-huge.long-title {
+  font-size: clamp(30px, 4.5vw, 120px);
+  letter-spacing: -0.04em; /* Tighter for long titles */
 }
 .slide-title-huge:hover {
   color: #fff;
