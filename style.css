@@ -301,20 +301,21 @@ nav.scrolled {
 }
 
 .slide-title-huge {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(60px, 12vw, 220px);
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(40px, 10vw, 180px);
   font-weight: 900;
   text-transform: uppercase;
   color: transparent;
-  -webkit-text-stroke: 1.5px rgba(255,255,255,0.9);
+  -webkit-text-stroke: 1.5px rgba(255,255,255,0.95);
+  paint-order: stroke fill;
   text-shadow: none;
   letter-spacing: 0;
+  white-space: nowrap;
   text-align: center;
-  max-width: 85vw;
-  line-height: 0.85;
+  line-height: 1;
   transform: translateY(20px);
   opacity: 0;
-  pointer-events: auto; /* Allow hover */
+  pointer-events: auto;
   transition: transform 0.8s var(--ease) 0.1s, opacity 0.8s var(--ease) 0.1s, color 0.4s, -webkit-text-stroke 0.4s;
 }
 .slide-title-huge:hover {
