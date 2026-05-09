@@ -27,6 +27,8 @@
   --blue-soft:      var(--accent-gold);
   --blue-dim:       rgba(255, 140, 0, 0.1);
   --blue-glow:      rgba(255, 140, 0, 0.3);
+  --purple:         #ff4d6d; /* Re-using accent-pink for purple gradients */
+  --cyan:           #ffcc33; /* Re-using gold for mid-gradient */
 
   /* Text - High Contrast for Dark Theme */
   --text-900:       rgba(255, 255, 255, 0.95);
@@ -416,8 +418,10 @@ nav.scrolled {
 }
 
 .text-gradient {
-  background: linear-gradient(120deg, var(--blue) 0%, var(--cyan) 45%, var(--purple) 100%);
-  -webkit-background-clip: text; background-clip: text;
+  color: #fff; /* Fallback for transparency */
+  background: linear-gradient(120deg, #fff 0%, var(--accent) 50%, var(--accent-pink) 100%);
+  -webkit-background-clip: text; 
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
