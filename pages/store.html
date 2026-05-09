@@ -124,11 +124,26 @@ async function fetchSteamDetails(appId) {
   return null;
 }
 async function fetchGameGenLink(appId) {
+  // 1. Try GameGen
   try {
     const r = await fetch(`${GAMEGEN_BASE}/generate/${appId}`);
     const j = await r.json();
     if (j.success && j.manifest) return j.manifest.downloadUrl;
   } catch(e) {}
+  
+  // 2. Fallback to GitHub
+  try {
+    const githubToken = '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';
+    const repo = 'steamtoolsbot-dhyey/filebase';
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${appId}.lua`, {
+      headers: { 'Authorization': `token ${githubToken}` }
+    });
+    if (r.ok) {
+      const j = await r.json();
+      return j.download_url;
+    }
+  } catch(e) {}
+  
   return null;
 }
 

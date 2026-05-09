@@ -44,11 +44,26 @@ async function fetchSteamDetails(appId) {
 }
 
 async function fetchGameGenLink(appId) {
+  // 1. Try GameGen API
   try {
     const r = await fetch(`${GAMEGEN_BASE}/generate/${appId}`);
     const j = await r.json();
     if (j.success && j.manifest) return j.manifest.downloadUrl;
   } catch(e) { console.warn('GameGen error for', appId, e); }
+
+  // 2. Fallback to GitHub Repo (filebase)
+  try {
+    const githubToken = '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';
+    const repo = 'steamtoolsbot-dhyey/filebase';
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${appId}.lua`, {
+      headers: { 'Authorization': `token ${githubToken}` }
+    });
+    if (r.ok) {
+      const j = await r.json();
+      return j.download_url; // Direct link to the .lua manifest file
+    }
+  } catch(e) { console.warn('GitHub fallback error for', appId, e); }
+
   return null;
 }
 
