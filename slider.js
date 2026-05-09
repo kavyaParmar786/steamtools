@@ -93,10 +93,30 @@ class HeroSlider {
       nextSlide.classList.add('active', 'slide-enter-left');
     }
 
+    // Apply parallax offsets via JS for finer control
+    const prevTitle = prevSlide.querySelector('.slide-title-huge');
+    const nextTitle = nextSlide.querySelector('.slide-title-huge');
+    const prevImg = prevSlide.querySelector('.slide-bg-container');
+    const nextImg = nextSlide.querySelector('.slide-bg-container');
+
+    if (direction > 0) {
+      prevTitle.style.transform = 'translateX(-30%)';
+      prevImg.style.transform = 'translateX(-15%)';
+      nextTitle.style.transform = 'translateX(0)';
+      nextImg.style.transform = 'translateX(0)';
+    } else {
+      prevTitle.style.transform = 'translateX(30%)';
+      prevImg.style.transform = 'translateX(15%)';
+      nextTitle.style.transform = 'translateX(0)';
+      nextImg.style.transform = 'translateX(0)';
+    }
+
     setTimeout(() => {
       prevSlide.classList.remove('active', 'slide-exit-left', 'slide-exit-right');
+      // Reset transforms
+      [prevTitle, nextTitle, prevImg, nextImg].forEach(el => el.style.transform = '');
       this.isAnimating = false;
-    }, 1000); // 1s transition matching CSS
+    }, 1000); 
   }
 }
 
