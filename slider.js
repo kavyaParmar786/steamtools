@@ -1,6 +1,6 @@
 /**
  * STEAMTOOLS — Direction-Aware Slider Logic
- * Auto-rotating, cleaned-up editorial slider
+ * Smooth, Optimized, Magnetic Editorial Slider
  */
 
 class HeroSlider {
@@ -12,6 +12,11 @@ class HeroSlider {
     this.isAnimating = false;
     this.featured = CATALOG.slice(0, 10); 
     this.autoPlayInterval = null;
+
+    // Magnetic smoothing variables
+    this.mouse = { x: 0, y: 0 };
+    this.target = { x: 0, y: 0 };
+    this.current = { x: 0, y: 0 };
     
     this.init();
   }
@@ -20,6 +25,7 @@ class HeroSlider {
     this.renderSlides();
     this.setupEventListeners();
     this.startAutoPlay();
+    this.tick(); // Start smooth animation loop
   }
 
   renderSlides() {
@@ -46,7 +52,6 @@ class HeroSlider {
   }
 
   setupEventListeners() {
-    // Slider click navigation
     this.container.addEventListener('click', (e) => {
       if (this.isAnimating) return;
       if (e.target.closest('button') || e.target.closest('a')) return;
@@ -56,7 +61,6 @@ class HeroSlider {
       this.resetAutoPlay();
     });
 
-    // Magnetic Text Follow Effect
     this.container.addEventListener('mousemove', (e) => {
       const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
       if (!activeTitle) return;
@@ -65,18 +69,29 @@ class HeroSlider {
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
-      // Calculate distance from center (scaled down for subtlety)
-      const deltaX = (e.clientX - centerX) * 0.15;
-      const deltaY = (e.clientY - centerY) * 0.15;
-
-      activeTitle.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
+      // Update target position
+      this.target.x = (e.clientX - centerX) * 0.12;
+      this.target.y = (e.clientY - centerY) * 0.12;
     });
 
-    // Reset title position on mouse leave
     this.container.addEventListener('mouseleave', () => {
-      const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
-      if (activeTitle) activeTitle.style.transform = `translate3d(0, 0, 0)`;
+      this.target.x = 0;
+      this.target.y = 0;
     });
+  }
+
+  // Smooth animation loop (RequestAnimationFrame)
+  tick() {
+    // Lerp smoothing (Current + (Target - Current) * Factor)
+    this.current.x += (this.target.x - this.current.x) * 0.08;
+    this.current.y += (this.target.y - this.current.y) * 0.08;
+
+    const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
+    if (activeTitle && !this.isAnimating) {
+      activeTitle.style.transform = `translate3d(${this.current.x}px, ${this.current.y}px, 0)`;
+    }
+
+    requestAnimationFrame(() => this.tick());
   }
 
   startAutoPlay() {
@@ -119,11 +134,10 @@ class HeroSlider {
       nextSlide.classList.add('active', 'slide-enter-left');
     }
 
-    // Parallax logic
+    // Parallax
     const prevTitle = prevSlide.querySelector('.slide-title-huge');
     const nextTitle = nextSlide.querySelector('.slide-title-huge');
     const prevImg = prevSlide.querySelector('.slide-bg-container');
-    const nextImg = nextSlide.querySelector('.slide-bg-container');
 
     if (direction > 0) {
       prevTitle.style.transform = 'translateX(-30%)';
@@ -135,14 +149,17 @@ class HeroSlider {
 
     setTimeout(() => {
       prevSlide.classList.remove('active', 'slide-exit-left', 'slide-exit-right');
-      // Reset transforms
-      [prevTitle, nextTitle, prevImg, nextImg].forEach(el => el.style.transform = '');
+      [prevTitle, nextTitle, prevImg].forEach(el => {
+        if(el) el.style.transform = '';
+      });
+      // Reset smoothing positions to center after slide
+      this.current.x = 0; this.current.y = 0;
+      this.target.x = 0; this.target.y = 0;
       this.isAnimating = false;
     }, 1000); 
   }
 }
 
-// Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('hero-slider')) {
     window.steamSlider = new HeroSlider('hero-slider');
