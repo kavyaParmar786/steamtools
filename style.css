@@ -695,6 +695,19 @@ footer {
   color: #fff; border-color: transparent;
   transform: translateY(-1px);
 }
+.btn-apply.applying { opacity: 0.7; cursor: wait; background: var(--blue-glow); }
+.btn-apply.applied { background: #4ade8020; border-color: #4ade8040; color: #16a34a; cursor: default; }
+
+.fix-game-tag {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px;
+  padding: 3px 10px; background: var(--blue-dim);
+  border: 1px solid rgba(107,158,248,0.2); border-radius: 6px; color: var(--blue);
+}
+.fix-version-tag {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px;
+  padding: 3px 10px; background: var(--purple-dim);
+  border: 1px solid rgba(167,139,250,0.2); border-radius: 6px; color: var(--purple);
+}
 
 /* ── Drops feed ── */
 .drops-feed { display: flex; flex-direction: column; gap: 12px; }

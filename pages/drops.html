@@ -15,9 +15,9 @@
 
 <div class="di-wrapper">
   <nav id="main-nav">
-    <a href="../index.html" class="logo">
-      <div class="logo-icon">ST</div>
-      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    <a href="../index.html" class="nav-logo">
+      <div class="nav-logo-icon">ST</div>
+      <span class="nav-logo-text">STEAM<span>TOOLS</span></span>
     </a>
     <div class="nav-sep"></div>
     <ul class="nav-links">
@@ -28,9 +28,9 @@
       <li><a href="profile.html">Profile</a></li>
     </ul>
     <div class="nav-sep"></div>
-    <div class="nav-right">
-      <a href="profile.html" class="btn-ghost">Sign In</a>
-      <a href="#" class="btn-primary">Discord</a>
+    <div class="nav-actions">
+      <a href="profile.html" class="nav-btn-ghost">Sign In</a>
+      <a href="#" class="nav-btn-primary">Discord</a>
     </div>
   </nav>
 </div>
@@ -56,27 +56,19 @@
   </div>
 </footer>
 
+<script src="../shared.js"></script>
 <script>
-const STEAM_IMG = 'https://cdn.cloudflare.steamstatic.com/steam/apps';
-const drops = [
-  { id:'1091500', name:'Cyberpunk 2077 — Phantom Liberty', date:'MAY 08, 2026', tag:'AAA · SCI-FI',  badge:'NEW' },
-  { id:'553850',  name:'HELLDIVERS 2',                     date:'MAY 07, 2026', tag:'AAA · CO-OP',   badge:'HOT' },
-  { id:'1245620', name:'Elden Ring — Shadow of the Erdtree',date:'MAY 05, 2026',tag:'AAA · RPG',     badge:'NEW' },
-  { id:'814380',  name:'Sekiro: Shadows Die Twice',        date:'MAY 03, 2026', tag:'AAA · ACTION',  badge:'VERIFIED' },
-  { id:'1086940', name:"Baldur's Gate 3 — Patch 8",        date:'APR 30, 2026', tag:'AAA · RPG',     badge:'UPDATED' },
-  { id:'892970',  name:'Valheim — Ashlands Update',        date:'APR 28, 2026', tag:'SURVIVAL',      badge:'UPDATED' },
-  { id:'1145360', name:'Hades II — Early Access',          date:'APR 25, 2026', tag:'INDIE · ROGUE', badge:'NEW' },
-  { id:'413150',  name:'Stardew Valley 1.6',               date:'APR 22, 2026', tag:'INDIE · RPG',   badge:'VERIFIED' },
-];
-
 document.addEventListener('DOMContentLoaded', () => {
   const feed = document.getElementById('drops-feed');
+  if (!feed) return;
+
   drops.forEach((d, i) => {
     const el = document.createElement('div');
-    el.className = `drop-item reveal ${i<3?'reveal-delay-'+(i+1):''}`;
+    el.className = `drop-item reveal visible`;
+    el.style.transitionDelay = `${i * 0.08}s`;
     el.innerHTML = `
-      <img class="drop-thumb" src="${STEAM_IMG}/${d.id}/library_600x900_2x.jpg"
-           onerror="this.style.display='none'" alt="">
+      <img class="drop-thumb" src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${d.id}/library_600x900_2x.jpg"
+           onerror="this.src='https://placehold.co/100x100/0a0f1a/6b9ef8?text=${d.id}'" alt="">
       <div class="drop-info">
         <h3>${d.name}</h3>
         <span>${d.date} · ${d.tag}</span>
@@ -86,6 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-<script src="../shared.js"></script>
 </body>
 </html>
+

@@ -16,9 +16,9 @@
 
 <div class="di-wrapper">
   <nav id="main-nav">
-    <a href="../index.html" class="logo">
-      <div class="logo-icon">ST</div>
-      <span class="logo-text">STEAM<span>TOOLS</span></span>
+    <a href="../index.html" class="nav-logo">
+      <div class="nav-logo-icon">ST</div>
+      <span class="nav-logo-text">STEAM<span>TOOLS</span></span>
     </a>
     <div class="nav-sep"></div>
     <ul class="nav-links">
@@ -29,9 +29,9 @@
       <li><a href="profile.html">Profile</a></li>
     </ul>
     <div class="nav-sep"></div>
-    <div class="nav-right">
-      <a href="profile.html" class="btn-ghost">Sign In</a>
-      <a href="#" class="btn-primary">Discord</a>
+    <div class="nav-actions">
+      <a href="profile.html" class="nav-btn-ghost">Sign In</a>
+      <a href="#" class="nav-btn-primary">Discord</a>
     </div>
   </nav>
 </div>
@@ -113,6 +113,7 @@
   </div>
 </footer>
 
+<script src="../shared.js"></script>
 <script>
 const recentReqs = [
   { name: 'Monster Hunter Wilds', status: 'FULFILLED', color: 'var(--blue)' },
@@ -123,27 +124,30 @@ const recentReqs = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Render recent requests
   const feed = document.getElementById('recent-requests');
-  recentReqs.forEach((r, i) => {
-    const el = document.createElement('div');
-    el.className = `drop-item reveal visible`;
-    el.style.transitionDelay = `${i * 0.08}s`;
-    el.innerHTML = `
-      <div class="drop-info"><h3>${r.name}</h3></div>
-      <span class="drop-badge" style="color:${r.color};border-color:${r.color}30;background:${r.color}12">${r.status}</span>`;
-    feed.appendChild(el);
-  });
+  if (feed) {
+    recentReqs.forEach((r, i) => {
+      const el = document.createElement('div');
+      el.className = `drop-item reveal visible`;
+      el.style.transitionDelay = `${i * 0.08}s`;
+      el.innerHTML = `
+        <div class="drop-info"><h3>${r.name}</h3></div>
+        <span class="drop-badge" style="color:${r.color};border-color:${r.color}30;background:${r.color}12">${r.status}</span>`;
+      feed.appendChild(el);
+    });
+  }
 
-  // Submit handler
-  document.getElementById('submit-req').addEventListener('click', () => {
-    const title = document.getElementById('req-title').value.trim();
-    if (!title) { document.getElementById('req-title').focus(); return; }
-    const ticketId = 'ST-' + Date.now().toString(36).toUpperCase();
-    document.getElementById('request-form').style.display = 'none';
-    document.getElementById('req-success').style.display = 'block';
-    document.getElementById('req-ticket-id').textContent = `Ticket ID: ${ticketId}`;
-  });
+  const submitBtn = document.getElementById('submit-req');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      const title = document.getElementById('req-title').value.trim();
+      if (!title) { document.getElementById('req-title').focus(); return; }
+      const ticketId = 'ST-' + Date.now().toString(36).toUpperCase();
+      document.getElementById('request-form').style.display = 'none';
+      document.getElementById('req-success').style.display = 'block';
+      document.getElementById('req-ticket-id').textContent = `Ticket ID: ${ticketId}`;
+    });
+  }
 });
 
 function resetForm() {
@@ -154,6 +158,6 @@ function resetForm() {
   document.getElementById('req-notes').value = '';
 }
 </script>
-<script src="../shared.js"></script>
 </body>
 </html>
+
