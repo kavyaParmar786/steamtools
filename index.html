@@ -39,31 +39,17 @@
   </nav>
 </div>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-content">
-    <div class="hero-tag reveal">
-      <span class="tag-dot"></span>
-      PRO PREMIUM ACCESS · V2.0
-    </div>
-    <h1 class="reveal reveal-delay-1">
-      THE ULTIMATE<br>
-      <span class="text-gradient">STEAM VAULT</span>
-    </h1>
-    <p class="hero-sub reveal reveal-delay-2">
-      Why empty your wallet when you can play for free?<br>
-      Access 100% verified, full, unlocked Steam releases trusted by thousands.<br>
-      Powered by GameGen API · Real-time manifest generation.
-    </p>
-    <div class="hero-btns reveal reveal-delay-3">
-      <a href="#vault" class="btn-hero">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Explore Archive
-      </a>
-      <a href="#features" class="btn-hero-outline">
-        Learn More
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </a>
+<!-- DYNAMIC HERO SLIDER -->
+<section class="hero-slider-wrap">
+  <div class="slider-container" id="hero-slider">
+    <!-- Slides will be injected by JS -->
+  </div>
+  
+  <!-- Direction-Aware Cursor -->
+  <div class="slider-cursor">
+    <div class="slider-cursor-circle">
+      <svg class="cursor-arrow arrow-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+      <svg class="cursor-arrow arrow-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
     </div>
   </div>
 
@@ -197,6 +183,7 @@
 </footer>
 
 <script src="shared.js"></script>
+<script src="slider.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
