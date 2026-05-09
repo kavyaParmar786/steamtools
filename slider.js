@@ -1,6 +1,6 @@
 /**
  * STEAMTOOLS — Direction-Aware Slider Logic
- * Smooth, Optimized, Magnetic Editorial Slider
+ * Snappy, High-Performance Magnetic Editorial Slider
  */
 
 class HeroSlider {
@@ -13,10 +13,10 @@ class HeroSlider {
     this.featured = CATALOG.slice(0, 10); 
     this.autoPlayInterval = null;
 
-    // Magnetic smoothing variables
-    this.mouse = { x: 0, y: 0 };
+    // Magnetic variables
     this.target = { x: 0, y: 0 };
     this.current = { x: 0, y: 0 };
+    this.activeTitle = null; // Cache for performance
     
     this.init();
   }
@@ -25,7 +25,7 @@ class HeroSlider {
     this.renderSlides();
     this.setupEventListeners();
     this.startAutoPlay();
-    this.tick(); // Start smooth animation loop
+    this.tick(); 
   }
 
   renderSlides() {
@@ -62,16 +62,15 @@ class HeroSlider {
     });
 
     this.container.addEventListener('mousemove', (e) => {
-      const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
-      if (!activeTitle) return;
+      if (!this.activeTitle || this.isAnimating) return;
 
-      const rect = activeTitle.getBoundingClientRect();
+      const rect = this.activeTitle.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
-      // Update target position
-      this.target.x = (e.clientX - centerX) * 0.12;
-      this.target.y = (e.clientY - centerY) * 0.12;
+      // Snappier target calculation (increased range)
+      this.target.x = (e.clientX - centerX) * 0.18;
+      this.target.y = (e.clientY - centerY) * 0.18;
     });
 
     this.container.addEventListener('mouseleave', () => {
@@ -80,15 +79,13 @@ class HeroSlider {
     });
   }
 
-  // Smooth animation loop (RequestAnimationFrame)
   tick() {
-    // Lerp smoothing (Current + (Target - Current) * Factor)
-    this.current.x += (this.target.x - this.current.x) * 0.08;
-    this.current.y += (this.target.y - this.current.y) * 0.08;
+    // Faster Lerp for snappier response (0.2 instead of 0.08)
+    this.current.x += (this.target.x - this.current.x) * 0.2;
+    this.current.y += (this.target.y - this.current.y) * 0.2;
 
-    const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
-    if (activeTitle && !this.isAnimating) {
-      activeTitle.style.transform = `translate3d(${this.current.x}px, ${this.current.y}px, 0)`;
+    if (this.activeTitle && !this.isAnimating) {
+      this.activeTitle.style.transform = `translate3d(${this.current.x}px, ${this.current.y}px, 0)`;
     }
 
     requestAnimationFrame(() => this.tick());
@@ -108,6 +105,9 @@ class HeroSlider {
   showSlide(index) {
     this.slideEls.forEach((slide, i) => {
       slide.classList.toggle('active', i === index);
+      if (i === index) {
+        this.activeTitle = slide.querySelector('.slide-title-huge');
+      }
     });
     this.currentIndex = index;
   }
@@ -121,6 +121,9 @@ class HeroSlider {
 
     const prevSlide = this.slideEls[prevIndex];
     const nextSlide = this.slideEls[this.currentIndex];
+
+    // Prepare next slide cache
+    this.activeTitle = nextSlide.querySelector('.slide-title-huge');
 
     // Reset classes
     prevSlide.classList.remove('slide-enter-left', 'slide-enter-right', 'slide-exit-left', 'slide-exit-right');
@@ -136,23 +139,21 @@ class HeroSlider {
 
     // Parallax
     const prevTitle = prevSlide.querySelector('.slide-title-huge');
-    const nextTitle = nextSlide.querySelector('.slide-title-huge');
     const prevImg = prevSlide.querySelector('.slide-bg-container');
 
     if (direction > 0) {
-      prevTitle.style.transform = 'translateX(-30%)';
-      prevImg.style.transform = 'translateX(-15%)';
+      if(prevTitle) prevTitle.style.transform = 'translateX(-30%)';
+      if(prevImg) prevImg.style.transform = 'translateX(-15%)';
     } else {
-      prevTitle.style.transform = 'translateX(30%)';
-      prevImg.style.transform = 'translateX(15%)';
+      if(prevTitle) prevTitle.style.transform = 'translateX(30%)';
+      if(prevImg) prevImg.style.transform = 'translateX(15%)';
     }
 
     setTimeout(() => {
       prevSlide.classList.remove('active', 'slide-exit-left', 'slide-exit-right');
-      [prevTitle, nextTitle, prevImg].forEach(el => {
+      [prevTitle, prevImg].forEach(el => {
         if(el) el.style.transform = '';
       });
-      // Reset smoothing positions to center after slide
       this.current.x = 0; this.current.y = 0;
       this.target.x = 0; this.target.y = 0;
       this.isAnimating = false;
