@@ -1,20 +1,17 @@
 /**
  * STEAMTOOLS — Direction-Aware Slider Logic
- * Replicating the mm008 Webflow slider behavior
+ * Auto-rotating, cleaned-up editorial slider
  */
 
 class HeroSlider {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
-    this.cursor = document.querySelector('.slider-cursor');
-    if (!this.container || !this.cursor) return;
+    if (!this.container) return;
 
     this.currentIndex = 0;
     this.isAnimating = false;
-    this.slides = [];
-    
-    // Pick featured games from CATALOG
-    this.featured = CATALOG.slice(0, 5); 
+    this.featured = CATALOG.slice(0, 10); 
+    this.autoPlayInterval = null;
     
     this.init();
   }
@@ -22,7 +19,7 @@ class HeroSlider {
   init() {
     this.renderSlides();
     this.setupEventListeners();
-    this.showSlide(0);
+    this.startAutoPlay();
   }
 
   renderSlides() {
@@ -42,18 +39,10 @@ class HeroSlider {
     `).join('');
     
     this.slideEls = this.container.querySelectorAll('.slide');
+    this.showSlide(0);
   }
 
   setupEventListeners() {
-    // Direction-aware cursor movement
-    window.addEventListener('mousemove', (e) => {
-      this.cursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
-      
-      const isRight = e.clientX > window.innerWidth / 2;
-      this.cursor.classList.toggle('is-right', isRight);
-      this.cursor.classList.toggle('is-left', !isRight);
-    });
-
     // Slider click navigation
     this.container.addEventListener('click', (e) => {
       if (this.isAnimating) return;
@@ -61,7 +50,19 @@ class HeroSlider {
 
       const isRight = e.clientX > window.innerWidth / 2;
       this.transition(isRight ? 1 : -1);
+      this.resetAutoPlay();
     });
+  }
+
+  startAutoPlay() {
+    if (this.autoPlayInterval) clearInterval(this.autoPlayInterval);
+    this.autoPlayInterval = setInterval(() => {
+      this.transition(1);
+    }, 5000);
+  }
+
+  resetAutoPlay() {
+    this.startAutoPlay();
   }
 
   showSlide(index) {
@@ -93,7 +94,7 @@ class HeroSlider {
       nextSlide.classList.add('active', 'slide-enter-left');
     }
 
-    // Apply parallax offsets via JS for finer control
+    // Parallax logic
     const prevTitle = prevSlide.querySelector('.slide-title-huge');
     const nextTitle = nextSlide.querySelector('.slide-title-huge');
     const prevImg = prevSlide.querySelector('.slide-bg-container');
@@ -102,13 +103,9 @@ class HeroSlider {
     if (direction > 0) {
       prevTitle.style.transform = 'translateX(-30%)';
       prevImg.style.transform = 'translateX(-15%)';
-      nextTitle.style.transform = 'translateX(0)';
-      nextImg.style.transform = 'translateX(0)';
     } else {
       prevTitle.style.transform = 'translateX(30%)';
       prevImg.style.transform = 'translateX(15%)';
-      nextTitle.style.transform = 'translateX(0)';
-      nextImg.style.transform = 'translateX(0)';
     }
 
     setTimeout(() => {

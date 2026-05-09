@@ -211,29 +211,6 @@ async function openGameModal(appId) {
 }
 
 /* ── UI HELPERS ──────────────────────────────── */
-function initCursor() {
-  const dot  = document.querySelector('.cursor-dot');
-  const ring = document.querySelector('.cursor-ring');
-  if (!dot || !ring) return;
-
-  let mx = -100, my = -100, rx = -100, ry = -100;
-  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-
-  function animCursor() {
-    rx += (mx - rx) * 0.14;
-    ry += (my - ry) * 0.14;
-    dot.style.left  = mx + 'px'; dot.style.top  = my + 'px';
-    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
-    requestAnimationFrame(animCursor);
-  }
-  animCursor();
-
-  document.querySelectorAll('a,button,.game-card').forEach(el => {
-    el.addEventListener('mouseenter', () => { dot.style.width = '10px'; dot.style.height = '10px'; });
-    el.addEventListener('mouseleave', () => { dot.style.width = '6px'; dot.style.height = '6px'; });
-  });
-}
-
 function initReveal() {
   const revealEls = document.querySelectorAll('.reveal');
   const ro = new IntersectionObserver(entries => {
@@ -270,7 +247,6 @@ function initSmoothScroll() {
 
 /* ── INITIALIZATION ───────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  initCursor();
   initReveal();
   initNav();
   initSmoothScroll();
