@@ -268,24 +268,10 @@ function initSmoothScroll() {
   });
 }
 
-function initOceanBackground() {
-  // Logic for initializing background across pages
-  const isSubpage = window.location.pathname.includes('/pages/');
-  const oceanCanvas = document.getElementById('ocean-bg') || document.getElementById('webgl-bg');
-  
-  if (oceanCanvas) {
-    oceanCanvas.id = 'webgl-bg';
-    const script = document.createElement('script');
-    script.src = isSubpage ? '../ocean.js' : 'ocean.js';
-    document.body.appendChild(script);
-  }
-}
-
 /* ── INITIALIZATION ───────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initCursor();
   initReveal();
   initNav();
   initSmoothScroll();
-  initOceanBackground();
 });

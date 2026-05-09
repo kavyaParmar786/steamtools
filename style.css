@@ -65,7 +65,15 @@ body {
   width: 100%; height: 100%;
 }
 
-/* ── Custom cursor ────────────────────────────────── */
+#background-video {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  filter: brightness(0.6) contrast(1.1);
+}
+
 .cursor-dot, .cursor-ring {
   position: fixed;
   pointer-events: none;
