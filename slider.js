@@ -55,6 +55,28 @@ class HeroSlider {
       this.transition(isRight ? 1 : -1);
       this.resetAutoPlay();
     });
+
+    // Magnetic Text Follow Effect
+    this.container.addEventListener('mousemove', (e) => {
+      const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
+      if (!activeTitle) return;
+
+      const rect = activeTitle.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      // Calculate distance from center (scaled down for subtlety)
+      const deltaX = (e.clientX - centerX) * 0.15;
+      const deltaY = (e.clientY - centerY) * 0.15;
+
+      activeTitle.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
+    });
+
+    // Reset title position on mouse leave
+    this.container.addEventListener('mouseleave', () => {
+      const activeTitle = this.container.querySelector('.slide.active .slide-title-huge');
+      if (activeTitle) activeTitle.style.transform = `translate3d(0, 0, 0)`;
+    });
   }
 
   startAutoPlay() {

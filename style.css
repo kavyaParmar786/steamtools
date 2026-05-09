@@ -316,6 +316,8 @@ nav.scrolled {
   transform: translateY(20px);
   opacity: 0;
   pointer-events: auto;
+  backface-visibility: hidden;
+  will-change: transform, color;
   transition: transform 0.8s var(--ease) 0.1s, opacity 0.8s var(--ease) 0.1s, color 0.4s, -webkit-text-stroke 0.4s;
 }
 
