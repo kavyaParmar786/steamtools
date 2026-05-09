@@ -28,22 +28,15 @@ class HeroSlider {
   renderSlides() {
     this.container.innerHTML = this.featured.map((game, i) => `
       <div class="slide" data-index="${i}">
-        <div class="slide-bg">
+        <div class="slide-bg-container">
           <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/library_hero.jpg" 
                onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/header.jpg'" alt="${game.name}">
         </div>
-        <div class="slide-overlay"></div>
-        <div class="slide-content">
-          <div class="hero-tag">
-            <span class="tag-dot"></span>
-            FEATURED RELEASE
-          </div>
-          <h1>${game.name}</h1>
-          <p class="hero-sub">${game.tag} — Access the full verified manifest now.</p>
-          <div class="hero-btns">
-            <button class="btn-hero" onclick="openGameModal('${game.id}')">View Details ↗</button>
-            <a href="#vault" class="btn-hero-outline">Explore Archive</a>
-          </div>
+        <div class="slide-title-wrap">
+          <div class="slide-title-huge">${game.name}</div>
+        </div>
+        <div class="slide-actions">
+          <button class="btn-editorial" onclick="openGameModal('${game.id}')">Access Vault</button>
         </div>
       </div>
     `).join('');
@@ -67,11 +60,7 @@ class HeroSlider {
       if (e.target.closest('button') || e.target.closest('a')) return;
 
       const isRight = e.clientX > window.innerWidth / 2;
-      if (isRight) {
-        this.nextSlide();
-      } else {
-        this.prevSlide();
-      }
+      this.transition(isRight ? 1 : -1);
     });
   }
 
@@ -80,14 +69,6 @@ class HeroSlider {
       slide.classList.toggle('active', i === index);
     });
     this.currentIndex = index;
-  }
-
-  nextSlide() {
-    this.transition(1);
-  }
-
-  prevSlide() {
-    this.transition(-1);
   }
 
   transition(direction) {
@@ -100,16 +81,14 @@ class HeroSlider {
     const prevSlide = this.slideEls[prevIndex];
     const nextSlide = this.slideEls[this.currentIndex];
 
-    // Remove old classes
+    // Reset classes
     prevSlide.classList.remove('slide-enter-left', 'slide-enter-right', 'slide-exit-left', 'slide-exit-right');
     nextSlide.classList.remove('slide-enter-left', 'slide-enter-right', 'slide-exit-left', 'slide-exit-right');
 
     if (direction > 0) {
-      // Moving Forward
       prevSlide.classList.add('slide-exit-left');
       nextSlide.classList.add('active', 'slide-enter-right');
     } else {
-      // Moving Backward
       prevSlide.classList.add('slide-exit-right');
       nextSlide.classList.add('active', 'slide-enter-left');
     }
@@ -117,7 +96,7 @@ class HeroSlider {
     setTimeout(() => {
       prevSlide.classList.remove('active', 'slide-exit-left', 'slide-exit-right');
       this.isAnimating = false;
-    }, 800);
+    }, 1000); // 1s transition matching CSS
   }
 }
 
