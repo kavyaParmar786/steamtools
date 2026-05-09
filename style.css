@@ -340,7 +340,7 @@ nav.scrolled {
 
 .slide-title-huge {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(120px, 22vw, 380px);
+  font-size: clamp(60px, 12vw, 240px);
   font-weight: 900;
   text-transform: uppercase;
   color: transparent;

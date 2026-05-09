@@ -33,7 +33,7 @@ class HeroSlider {
                onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/header.jpg'" alt="${game.name}">
         </div>
         <div class="slide-title-wrap">
-          <div class="slide-title-huge">${game.name}</div>
+          <div class="slide-title-huge">${game.short || game.name}</div>
         </div>
         <div class="slide-actions">
           <button class="btn-editorial" onclick="openGameModal('${game.id}')">Access Vault</button>
