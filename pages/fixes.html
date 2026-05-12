@@ -10,6 +10,10 @@
   <link rel="stylesheet" href="../extras.css">
 </head>
 <body>
+<div class="page-transition-overlay"></div>
+<video autoplay muted loop playsinline class="bg-video">
+  <source src="https://steamtools.taupe.vercel.app/bg.mp4" type="video/mp4">
+</video>
 <canvas id="webgl-bg"></canvas>
 
 <div class="di-wrapper">
@@ -43,8 +47,11 @@
     </div>
 
     <!-- Search -->
-    <div class="store-controls reveal" style="margin-bottom:24px">
-      <input type="text" id="fix-search" placeholder="🔍  Search fixes...">
+    <div class="store-controls reveal">
+      <div class="search-container" style="margin: 0;">
+        <input type="text" id="fix-search" class="premium-search" placeholder="Search fixes...">
+        <span class="search-icon">🔍</span>
+      </div>
       <div class="filter-strip">
         <button class="filter-btn active" data-cat="all">All</button>
         <button class="filter-btn" data-cat="performance">Performance</button>
