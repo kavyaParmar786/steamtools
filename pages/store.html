@@ -10,8 +10,6 @@
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
-<div class="cursor-dot"></div>
-<div class="cursor-ring"></div>
 
 <div class="di-wrapper">
   <nav id="main-nav">
@@ -39,8 +37,8 @@
   <div class="container">
     <div class="page-hero reveal">
       <span class="page-hero-tag">// THE COLLECTION</span>
-      <h1>THE VAULT <span class="text-gradient">STORE</span></h1>
-      <p>Access the largest collection of verified Steam manifests. Powered by GameGen API with real-time generation.</p>
+      <h1 class="section-title">THE VAULT <span class="text-gradient">STORE</span></h1>
+      <p class="hero-sub">Access the largest collection of verified Steam manifests. Powered by GameGen API.</p>
     </div>
 
     <div class="store-controls reveal">
@@ -53,39 +51,16 @@
       </div>
     </div>
 
-    <!-- Featured Banner -->
-    <div class="featured-banner reveal" id="featured-banner">
-      <div class="featured-img">
-        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg" alt="Featured">
-        <div class="featured-overlay">
-          <span class="game-status-badge">FEATURED</span>
-          <h2>Elden Ring</h2>
-          <p>AAA · RPG — Rise, Tarnished, and be guided by grace.</p>
-          <button class="btn-hero" onclick="openGameModal('1245620')">View Details ↗</button>
-        </div>
-      </div>
-    </div>
-
     <div class="game-grid" id="store-grid"></div>
 
-    <!-- Load more -->
-    <div class="load-more-wrap reveal" style="text-align:center;margin-top:40px">
+    <div class="load-more-wrap reveal" style="text-align:center;margin:80px 0">
       <div class="api-status" id="api-status">
         <span class="tag-dot"></span>
-        <span>GameGen API · Connected</span>
+        <span>GameGen API · Connected · 45 Titles Loaded</span>
       </div>
     </div>
   </div>
 </div>
-
-<footer>
-  <div class="container">
-    <div class="footer-bottom">
-      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
-      <p>All trademarks belong to their respective owners.</p>
-    </div>
-  </div>
-</footer>
 
 <script src="../shared.js"></script>
 <script>
@@ -107,7 +82,7 @@ function renderStore() {
     const card = document.createElement('div');
     card.className = 'game-card reveal visible';
     card.style.transitionDelay = `${i * 0.04}s`;
-    card.onclick = () => openGameModal(game.id);
+    card.onclick = () => window.location.href = `details.html?id=${game.id}`;
     card.innerHTML = `
       <div class="game-img">
         <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/library_600x900_2x.jpg" alt="${game.name}" loading="lazy"

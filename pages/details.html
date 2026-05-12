@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Details | STEAMTOOLS</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../modal.css">
+  <link rel="stylesheet" href="../extras.css">
+  <style>
+    .details-page-wrap { padding-top: 120px; min-height: 100vh; position: relative; z-index: 1; }
+    .details-hero { 
+      position: relative; height: 60vh; border-radius: var(--radius-lg); 
+      overflow: hidden; margin-bottom: 40px; border: 1px solid var(--glass-border);
+    }
+    .details-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .details-hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, var(--bg-base) 0%, transparent 80%);
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 60px;
+    }
+    .details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
+    .details-content h1 { font-family: var(--font-display); font-size: 56px; font-weight: 800; margin-bottom: 12px; }
+    .details-sidebar { 
+      padding: 32px; background: var(--glass); border-radius: var(--radius); 
+      border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
+      position: sticky; top: 120px; height: fit-content;
+    }
+    .btn-main-dl {
+      width: 100%; padding: 18px; background: var(--accent); color: #fff;
+      border: none; border-radius: 12px; font-family: var(--font-mono); font-weight: 600;
+      font-size: 13px; text-transform: uppercase; cursor: pointer;
+      box-shadow: 0 10px 30px var(--accent-glow); transition: all 0.3s;
+      margin-bottom: 20px; display: block; text-align: center; text-decoration: none;
+    }
+    .btn-main-dl:hover { transform: translateY(-4px); box-shadow: 0 15px 40px var(--accent-glow); }
+    .spec-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--glass-border); font-size: 13px; }
+    .spec-item span:first-child { color: var(--text-400); font-family: var(--font-mono); }
+  </style>
+</head>
+<body>
+<canvas id="webgl-bg"></canvas>
+
+<div class="di-wrapper">
+  <nav id="main-nav">
+    <a href="../index.html" class="nav-logo">
+      <div class="nav-logo-icon">ST</div>
+      <span class="nav-logo-text">STEAM<span>TOOLS</span></span>
+    </a>
+    <div class="nav-sep"></div>
+    <ul class="nav-links">
+      <li><a href="store.html">Store</a></li>
+      <li><a href="fixes.html">Fixes</a></li>
+      <li><a href="drops.html">Drops</a></li>
+      <li><a href="request.html">Request</a></li>
+      <li><a href="profile.html">Profile</a></li>
+    </ul>
+    <div class="nav-sep"></div>
+    <div class="nav-actions">
+      <a href="profile.html" class="nav-btn-ghost">Sign In</a>
+      <a href="#" class="nav-btn-primary">Discord</a>
+    </div>
+  </nav>
+</div>
+
+<div class="details-page-wrap">
+  <div class="container" id="details-container">
+    <!-- Loaded by JS -->
+    <div style="text-align:center; padding: 100px; color: var(--text-400);">
+      Loading manifest details...
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+async function initDetails() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const appId = urlParams.get('id');
+  if (!appId) { window.location.href = 'store.html'; return; }
+
+  const game = CATALOG.find(g => g.id === appId);
+  const container = document.getElementById('details-container');
+  if (!game) { container.innerHTML = 'Game not found.'; return; }
+
+  const steamData = await fetchSteamDetails(appId);
+  const dlUrl = await fetchGameGenLink(appId);
+
+  container.innerHTML = `
+    <div class="details-hero reveal">
+      <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${appId}/library_hero.jpg" onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${appId}/header.jpg'">
+      <div class="details-hero-overlay">
+        <span class="section-tag">// ${game.cat.toUpperCase()}</span>
+        <h1 class="section-title">${game.name}</h1>
+      </div>
+    </div>
+
+    <div class="details-grid">
+      <div class="details-content reveal">
+        <p class="hero-sub" style="margin-left:0; text-align:left; max-width: 100%;">
+          ${steamData ? steamData.short_description : 'No description available for this title.'}
+        </p>
+        
+        <div class="reveal reveal-delay-1" style="margin-top:40px">
+          <h3 class="section-tag">Screenshots</h3>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:20px">
+            ${steamData?.screenshots?.slice(0, 4).map(s => `<img src="${s.path_full}" style="width:100%; border-radius:12px; border:1px solid var(--glass-border)">`).join('') || ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="details-sidebar reveal">
+        <a href="${dlUrl || '#'}" class="btn-main-dl" ${dlUrl ? '' : 'disabled'}>
+          ${dlUrl ? 'Generate Manifest' : 'Scanning Repos...'}
+        </a>
+        <div class="spec-item"><span>App ID</span><span>${appId}</span></div>
+        <div class="spec-item"><span>Category</span><span>${game.cat.toUpperCase()}</span></div>
+        <div class="spec-item"><span>Developer</span><span>${steamData?.developers?.[0] || 'Unknown'}</span></div>
+        <div class="spec-item"><span>Release</span><span>${steamData?.release_date?.date || 'TBA'}</span></div>
+        <div class="spec-item"><span>Status</span><span style="color:#4ade80">Verified</span></div>
+      </div>
+    </div>
+  `;
+  
+  if (typeof initReveal === 'function') initReveal();
+}
+
+document.addEventListener('DOMContentLoaded', initDetails);
+</script>
+</body>
+</html>

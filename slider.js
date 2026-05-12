@@ -41,7 +41,7 @@ class HeroSlider {
             <div class="slide-title-huge ${isLong ? 'long-title' : ''}">${game.name}</div>
           </div>
           <div class="slide-actions">
-            <button class="btn-editorial" onclick="openGameModal('${game.id}')">Access Vault</button>
+            <a href="pages/details.html?id=${game.id}" class="btn-editorial">Access Vault</a>
           </div>
         </div>
       `;
