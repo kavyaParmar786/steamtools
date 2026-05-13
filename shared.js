@@ -75,23 +75,46 @@ const _steamCache = {};
 async function fetchSteamDetails(appId) {
   if (_steamCache[appId]) return _steamCache[appId];
   try {
-    // Use cors proxy since Steam API blocks direct browser requests
     const urls = [
       `https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`)}`,
+      `https://api.allorigins.win/get?url=${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`)}`,
+      `https://thingproxy.freeboard.io/fetch/https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`
     ];
     for (const url of urls) {
       try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) continue;
         const j = await r.json();
-        if (j[appId]?.success) {
-          _steamCache[appId] = j[appId].data;
-          return j[appId].data;
+        
+        // Handle AllOrigins wrapper
+        let data = j;
+        if (j.contents) data = JSON.parse(j.contents);
+        
+        if (data[appId]?.success) {
+          _steamCache[appId] = data[appId].data;
+          return data[appId].data;
         }
       } catch(e) { continue; }
     }
   } catch(e) {}
   return null;
+}
+
+/**
+ * Enriches a game object with real Steam metadata if it's dynamic/missing info.
+ */
+async function enrichGameMetadata(game) {
+  if (!game.dynamic && game.name !== `Game ${game.id}`) return game;
+  
+  const details = await fetchSteamDetails(game.id);
+  if (details) {
+    game.name = details.name || game.name;
+    game.tag = (details.genres || []).map(g => g.description).join(' · ') || game.tag;
+    game.desc = details.short_description || "";
+    game.dynamic = false; // Mark as enriched
+  }
+  return game;
 }
 
 async function fetchSteamReviews(appId) {
@@ -170,27 +193,28 @@ async function loadFullCatalog() {
     
     if (r.ok) {
       const files = await r.json();
-      const newIds = files
-        .filter(f => f.name.endsWith('.lua'))
-        .map(f => f.name.replace('.lua', ''))
-        .filter(id => !DYNAMIC_CATALOG.some(g => g.id === id));
-      
-      // 2. For new IDs, we add them to the catalog as "Pending" or fetch basic metadata
-      // To prevent rate limiting, we only fetch metadata for a subset or on-demand
-      newIds.forEach(id => {
-        DYNAMIC_CATALOG.push({
-          id: id,
-          name: `Game ${id}`,
-          cat: 'uncategorized',
-          tag: 'Vault · New',
-          dynamic: true
+      if (Array.isArray(files)) {
+        const newIds = files
+          .filter(f => f.name.endsWith('.lua'))
+          .map(f => f.name.replace('.lua', ''))
+          .filter(id => !DYNAMIC_CATALOG.some(g => g.id === id));
+        
+        newIds.forEach(id => {
+          DYNAMIC_CATALOG.push({
+            id: id,
+            name: `Game ${id}`,
+            cat: 'uncategorized',
+            tag: 'Vault · New',
+            dynamic: true
+          });
         });
-      });
-      
-      console.log(`[Vault] Discovered ${newIds.length} new games from filebase.`);
+        console.log(`[Vault] Discovered ${newIds.length} new games.`);
+      } else {
+        console.warn("[Vault] GitHub API response is not an array:", files);
+      }
     }
   } catch(e) {
-    console.warn("[Vault] Failed to sync GitHub filebase:", e);
+    console.warn("[Vault] Sync error:", e);
   }
   
   CATALOG_LOADED = true;
@@ -236,7 +260,8 @@ async function initLiveStats() {
 let _activeScreenIdx = 0;
 
 async function openGameModal(appId) {
-  const game = CATALOG.find(g => g.id === appId);
+  const source = typeof DYNAMIC_CATALOG !== 'undefined' ? DYNAMIC_CATALOG : CATALOG;
+  const game = source.find(g => g.id === appId);
   if (!game) return;
   document.querySelector('.game-modal-overlay')?.remove();
   _activeScreenIdx = 0;

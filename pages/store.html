@@ -184,24 +184,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const html = chunk.map(g => `
-      <div class="game-card reveal visible" onclick="openGameModal('${g.id}')">
+      <div class="game-card reveal visible" id="card-${g.id}" onclick="openGameModal('${g.id}')">
         <div class="game-img">
           <img
             src="${imgUrl(g.id)}"
             alt="${g.name}"
+            id="img-${g.id}"
             loading="lazy"
             onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg';this.onerror=null">
         </div>
         <span class="game-status-badge">VERIFIED</span>
         <div class="game-overlay"><button class="btn-get">Get Game</button></div>
         <div class="game-info">
-          <h3>${g.name}</h3>
-          <span class="game-tag">${g.tag}</span>
+          <h3 id="title-${g.id}">${g.name}</h3>
+          <span class="game-tag" id="tag-${g.id}">${g.tag}</span>
         </div>
       </div>`).join('');
 
     if (append) grid.insertAdjacentHTML('beforeend', html);
     else grid.innerHTML = html;
+
+    // Trigger metadata enrichment for dynamic games in this chunk
+    chunk.forEach(async (g) => {
+      if (g.dynamic || g.name.startsWith('Game ')) {
+        const enriched = await enrichGameMetadata(g);
+        if (enriched) {
+          const titleEl = document.getElementById(`title-${g.id}`);
+          const tagEl = document.getElementById(`tag-${g.id}`);
+          if (titleEl) titleEl.textContent = enriched.name;
+          if (tagEl) tagEl.textContent = enriched.tag;
+        }
+      }
+    });
 
     const statusText = document.querySelector('.api-status span:last-child');
     if (statusText) statusText.textContent = `Vault Sync · ${source.length} Titles · Showing ${Math.min(visibleLimit, filtered.length)} of ${filtered.length}`;
