@@ -1,10 +1,11 @@
-/* STRAW HAT — SHARED SCRIPTS (no cursor) */
+/* STRAW HAT — SHARED SCRIPTS v5 */
 
 const STEAMTOOLS_CONFIG = {
   GAMEGEN_KEY:  'mg_89fab80a0e6c4949b0c169de799f4499',
   GAMEGEN_BASE: 'https://gamegen.lol/api/mg_89fab80a0e6c4949b0c169de799f4499',
   STEAM_IMG:    'https://cdn.cloudflare.steamstatic.com/steam/apps',
-  GITHUB_REPO:  'steamtoolsbot-dhyey/filebase'
+  GITHUB_REPO:  'steamtoolsbot-dhyey/filebase',
+  DISCORD_ID:   '1263113862754545795'  // Straw Hat Discord server ID
 };
 
 const CATALOG = [
@@ -69,91 +70,489 @@ const fixes = [
   {title:'Valheim Audio Desync Fix',        desc:'Fixes positional audio desyncing after extended play sessions and echo in underground biomes.',             badge:'',         cat:'audio',      game:'Valheim',          version:'v2.2'},
 ];
 
-/* ── STEAM API ─────────────────────────── */
+/* ── STEAM API ─────────────────────────────────── */
 const _steamCache = {};
 async function fetchSteamDetails(appId) {
   if (_steamCache[appId]) return _steamCache[appId];
   try {
-    const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}`);
+    // Use cors proxy since Steam API blocks direct browser requests
+    const urls = [
+      `https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`)}`,
+    ];
+    for (const url of urls) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const j = await r.json();
+        if (j[appId]?.success) {
+          _steamCache[appId] = j[appId].data;
+          return j[appId].data;
+        }
+      } catch(e) { continue; }
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function fetchSteamReviews(appId) {
+  try {
+    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://store.steampowered.com/appreviews/${appId}?json=1&num_per_page=0&language=all`)}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
     const j = await r.json();
-    if (j[appId]?.success) { _steamCache[appId] = j[appId].data; return j[appId].data; }
+    if (j.query_summary) return j.query_summary;
   } catch(e) {}
   return null;
 }
 
 async function fetchGameGenLink(appId) {
   try {
-    const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/generate/${appId}`);
+    const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/generate/${appId}`, { signal: AbortSignal.timeout(8000) });
     const j = await r.json();
     if (j.success && j.manifest) return j.manifest.downloadUrl;
   } catch(e) {}
   try {
-    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents/${appId}.lua`);
+    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents/${appId}.lua`, { signal: AbortSignal.timeout(6000) });
     if (r.ok) { const j = await r.json(); return j.download_url; }
   } catch(e) {}
   return null;
 }
 
-/* ── MODAL ─────────────────────────────── */
+/* ── LIVE DISCORD MEMBER COUNT ─────────────────── */
+async function fetchDiscordMembers() {
+  try {
+    // Discord widget API — works without auth for public servers
+    const r = await fetch(`https://discord.com/api/guilds/${STEAMTOOLS_CONFIG.DISCORD_ID}/widget.json`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const j = await r.json();
+      // approximate_member_count is total, presence_count is online
+      return j.approximate_member_count || j.members?.length || null;
+    }
+  } catch(e) {}
+  // Fallback: try the invite endpoint
+  try {
+    const r = await fetch(`https://discord.com/api/invites/AaK8s6fpVa?with_counts=true`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const j = await r.json();
+      return j.approximate_member_count || null;
+    }
+  } catch(e) {}
+  return null;
+}
+
+/* ── LIVE GAME COUNT from catalog + gamegen ────── */
+async function fetchLiveGameCount() {
+  // Base count from our catalog
+  const baseCount = CATALOG.length;
+  // Try to get total from gamegen API
+  try {
+    const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/count`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const j = await r.json();
+      if (j.count && j.count > baseCount) return j.count;
+    }
+  } catch(e) {}
+  // Try github repo file count
+  try {
+    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const files = await r.json();
+      const luaCount = Array.isArray(files) ? files.filter(f => f.name.endsWith('.lua')).length : 0;
+      if (luaCount > baseCount) return luaCount;
+    }
+  } catch(e) {}
+  return baseCount;
+}
+
+/* ── LIVE STATS INIT ───────────────────────────── */
+async function initLiveStats() {
+  // Fetch both in parallel
+  const [memberCount, gameCount] = await Promise.all([
+    fetchDiscordMembers(),
+    fetchLiveGameCount()
+  ]);
+
+  // Update member count stat
+  if (memberCount) {
+    document.querySelectorAll('.desc-stat-num[data-stat="members"]').forEach(el => {
+      el.dataset.count = memberCount;
+      el.textContent = '0+';
+    });
+    // Also update any hardcoded 12000 counts
+    document.querySelectorAll('.desc-stat-num[data-count="12000"]').forEach(el => {
+      el.dataset.count = memberCount;
+    });
+  }
+
+  // Update game count stat
+  if (gameCount) {
+    document.querySelectorAll('.desc-stat-num[data-stat="games"]').forEach(el => {
+      el.dataset.count = gameCount;
+      el.textContent = '0+';
+    });
+    document.querySelectorAll('.desc-stat-num[data-count="450"]').forEach(el => {
+      el.dataset.count = gameCount;
+    });
+  }
+
+  // Re-run counters after updating data
+  initCounters();
+}
+
+/* ── FULL EPIC/STEAM STYLE MODAL ──────────────── */
+let _activeScreenIdx = 0;
+
 async function openGameModal(appId) {
   const game = CATALOG.find(g => g.id === appId);
   if (!game) return;
   document.querySelector('.game-modal-overlay')?.remove();
+  _activeScreenIdx = 0;
+
+  const S = STEAMTOOLS_CONFIG.STEAM_IMG;
+
   const overlay = document.createElement('div');
   overlay.className = 'game-modal-overlay';
-  overlay.innerHTML = `<div class="game-modal">
+  overlay.innerHTML = `
+  <div class="game-modal" id="gm-${appId}">
     <button class="modal-close" onclick="this.closest('.game-modal-overlay').remove()">✕</button>
+
+    <!-- HERO BANNER -->
     <div class="modal-hero">
-      <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${appId}/library_600x900_2x.jpg" alt="${game.name}"
-        onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${appId}/header.jpg'">
-      <div class="modal-hero-gradient"></div>
-    </div>
-    <div class="modal-body">
-      <div class="modal-main">
-        <h1>${game.name}</h1>
-        <span class="game-tag" style="display:inline-block;margin-bottom:16px">${game.tag}</span>
-        <div class="modal-desc"><p>Loading details from Steam...</p></div>
-        <div class="modal-screens"><h3>Screenshots</h3><div class="screens-row" id="screens-${appId}">Loading...</div></div>
+      <div class="modal-hero-bg" id="mhbg-${appId}"
+        style="background-image:url('${S}/${appId}/library_hero.jpg')">
       </div>
-      <div class="modal-sidebar">
-        <button class="btn-hero btn-download" id="dl-btn-${appId}" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Generating...
-        </button>
-        <div class="modal-meta" id="meta-${appId}">Loading...</div>
+      <div class="modal-hero-keyart">
+        <img src="${S}/${appId}/library_600x900_2x.jpg" alt="${game.name}"
+          onerror="this.src='${S}/${appId}/capsule_616x353.jpg';this.style.maxWidth='80%'">
+      </div>
+      <div class="modal-hero-gradient"></div>
+      <div class="modal-hero-badges">
+        <span class="modal-hero-badge badge-free">FREE IN VAULT</span>
+        <span class="modal-hero-badge badge-new" id="mbadge-${appId}" style="display:none">VERIFIED</span>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="modal-content">
+
+      <!-- MAIN COLUMN -->
+      <div class="modal-main">
+        <div class="modal-title-row">
+          <div>
+            <div class="modal-title">${game.name}</div>
+            <div class="modal-subtitle">${game.tag} &nbsp;·&nbsp; STEAM APP ID: ${appId}</div>
+          </div>
+        </div>
+
+        <!-- TAGS - filled by Steam data -->
+        <div class="modal-tags" id="mtags-${appId}">
+          <span class="modal-tag modal-skeleton skel-block" style="width:60px;height:20px">&nbsp;</span>
+          <span class="modal-tag modal-skeleton skel-block" style="width:80px;height:20px">&nbsp;</span>
+        </div>
+
+        <!-- REVIEW SCORE -->
+        <div class="modal-review-row" id="mrev-${appId}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div class="review-score-big modal-skeleton skel-block" style="width:80px;height:48px;border-radius:8px">&nbsp;</div>
+          </div>
+          <div class="review-bar-wrap">
+            <div class="review-label modal-skeleton skel-block" style="width:120px;height:14px;border-radius:4px;margin-bottom:6px">&nbsp;</div>
+            <div class="review-bar-track"><div class="review-bar-fill" style="width:0%"></div></div>
+            <div class="review-count" style="margin-top:6px">Loading reviews...</div>
+          </div>
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="modal-section-title">About This Game</div>
+        <div class="modal-desc-text" id="mdesc-${appId}">
+          <div class="modal-skeleton skel-block" style="height:14px;margin-bottom:8px;border-radius:4px"></div>
+          <div class="modal-skeleton skel-block" style="height:14px;margin-bottom:8px;width:90%;border-radius:4px"></div>
+          <div class="modal-skeleton skel-block" style="height:14px;width:75%;border-radius:4px"></div>
+        </div>
+
+        <!-- MEDIA -->
+        <div class="modal-section-title" style="margin-top:32px">Media</div>
+        <div class="media-tabs">
+          <div class="media-tab active" onclick="switchMediaTab(this,'screenshots','${appId}')">Screenshots</div>
+          <div class="media-tab" onclick="switchMediaTab(this,'videos','${appId}')">Trailers</div>
+        </div>
+        <div id="media-screenshots-${appId}">
+          <div class="modal-featured-screen" id="mfeat-${appId}" onclick="openLightbox(this.querySelector('img').src)">
+            <img src="${S}/${appId}/ss_placeholder.jpg" id="mfeatimg-${appId}" alt="Screenshot">
+          </div>
+          <div class="screens-strip" id="mstrips-${appId}">
+            <div class="modal-skeleton skel-block" style="width:140px;height:80px;border-radius:8px;flex-shrink:0"></div>
+            <div class="modal-skeleton skel-block" style="width:140px;height:80px;border-radius:8px;flex-shrink:0"></div>
+            <div class="modal-skeleton skel-block" style="width:140px;height:80px;border-radius:8px;flex-shrink:0"></div>
+          </div>
+        </div>
+        <div id="media-videos-${appId}" style="display:none">
+          <div id="mvideos-${appId}" style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="color:var(--text-30);font-family:var(--font-mono);font-size:11px">Loading trailers...</div>
+          </div>
+        </div>
+
+        <!-- SYSTEM REQUIREMENTS -->
+        <div class="modal-section-title" style="margin-top:36px">System Requirements</div>
+        <div class="sysreq-grid" id="msysreq-${appId}">
+          <div class="sysreq-card">
+            <div class="sysreq-label">Minimum</div>
+            <div class="modal-skeleton skel-block" style="height:12px;margin-bottom:8px;border-radius:3px"></div>
+            <div class="modal-skeleton skel-block" style="height:12px;margin-bottom:8px;width:85%;border-radius:3px"></div>
+            <div class="modal-skeleton skel-block" style="height:12px;width:70%;border-radius:3px"></div>
+          </div>
+          <div class="sysreq-card">
+            <div class="sysreq-label">Recommended</div>
+            <div class="modal-skeleton skel-block" style="height:12px;margin-bottom:8px;border-radius:3px"></div>
+            <div class="modal-skeleton skel-block" style="height:12px;margin-bottom:8px;width:85%;border-radius:3px"></div>
+            <div class="modal-skeleton skel-block" style="height:12px;width:70%;border-radius:3px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="modal-sidebar-wrap">
+        <!-- CTA BOX -->
+        <div class="modal-cta-box">
+          <div class="modal-cta-cover">
+            <img src="${S}/${appId}/library_600x900_2x.jpg" alt="${game.name}"
+              onerror="this.src='${S}/${appId}/capsule_231x87.jpg'">
+          </div>
+          <div class="modal-cta-body">
+            <div class="modal-cta-price">FREE</div>
+            <div class="modal-cta-price-sub">Available in the Vault</div>
+            <button class="btn-get-game" id="dlbtn-${appId}" disabled>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span id="dlbtn-text-${appId}">Generating Link...</span>
+            </button>
+            <button class="btn-wishlist" onclick="showToast('Added to wishlist!','♡')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+              </svg>
+              Add to Wishlist
+            </button>
+          </div>
+        </div>
+
+        <!-- META INFO -->
+        <div class="sidebar-meta-block" id="mmeta-${appId}">
+          <div class="sidebar-meta-title">Game Info</div>
+          <div class="modal-skeleton skel-block" style="height:36px;border-radius:6px;margin-bottom:8px"></div>
+          <div class="modal-skeleton skel-block" style="height:36px;border-radius:6px;margin-bottom:8px"></div>
+          <div class="modal-skeleton skel-block" style="height:36px;border-radius:6px"></div>
+        </div>
+
+        <!-- STEAM LINK -->
+        <a href="https://store.steampowered.com/app/${appId}" target="_blank" class="sidebar-steam-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39l3.12-5.4c-.4-.12-.77-.29-1.11-.52a4.15 4.15 0 01-1.64-5.38 4.15 4.15 0 013.69-2.28l3.26-5.65A12 12 0 0112 0zm4.09 18.14a4.15 4.15 0 01-5.53-5.54l-3.1 5.38A11.97 11.97 0 0012 24c2.58 0 4.97-.82 6.94-2.2l-2.85-3.66zm2.29-3.97l-3.24-5.61c1.38.47 2.48 1.47 3.07 2.79a4.13 4.13 0 01.17 2.82z"/>
+          </svg>
+          View on Steam Store
+        </a>
       </div>
     </div>
   </div>`;
+
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
-  const [details, dlUrl] = await Promise.all([fetchSteamDetails(appId), fetchGameGenLink(appId)]);
+  // Load data in parallel
+  const [details, reviews, dlUrl] = await Promise.all([
+    fetchSteamDetails(appId),
+    fetchSteamReviews(appId),
+    fetchGameGenLink(appId)
+  ]);
 
+  // ── Populate DETAILS ──
   if (details) {
-    overlay.querySelector('.modal-desc').innerHTML = `<p>${details.short_description || 'No description.'}</p>`;
-    const sr = document.getElementById(`screens-${appId}`);
-    if (details.screenshots?.length) {
-      sr.innerHTML = details.screenshots.slice(0,6).map(s =>
-        `<img src="${s.path_thumbnail}" class="screen-thumb" onclick="this.classList.toggle('expanded')">`).join('');
-    } else sr.innerHTML = '<p>No screenshots</p>';
-    document.getElementById(`meta-${appId}`).innerHTML = `
-      <div class="meta-row"><span>Developer</span><span>${(details.developers||['N/A']).join(', ')}</span></div>
-      <div class="meta-row"><span>Publisher</span><span>${(details.publishers||['N/A']).join(', ')}</span></div>
-      <div class="meta-row"><span>Genre</span><span>${(details.genres||[]).map(g=>g.description).join(', ')||'N/A'}</span></div>
-      <div class="meta-row"><span>Released</span><span>${details.release_date?.date||'N/A'}</span></div>`;
+    // Tags / genres
+    const tagEl = document.getElementById(`mtags-${appId}`);
+    if (tagEl) {
+      const genres = (details.genres || []).map(g => g.description);
+      const cats = (details.categories || []).map(c => c.description).slice(0, 3);
+      const all = [...new Set([...genres, ...cats])].slice(0, 6);
+      tagEl.innerHTML = all.map(t => `<span class="modal-tag">${t}</span>`).join('');
+    }
+
+    // Description
+    const descEl = document.getElementById(`mdesc-${appId}`);
+    if (descEl) {
+      descEl.innerHTML = `<p>${details.short_description || details.detailed_description?.substring(0, 400) || 'No description available.'}</p>`;
+    }
+
+    // Screenshots
+    const screens = details.screenshots || [];
+    const featImg = document.getElementById(`mfeatimg-${appId}`);
+    const stripEl = document.getElementById(`mstrips-${appId}`);
+    if (screens.length && featImg) {
+      featImg.src = screens[0].path_full || screens[0].path_thumbnail;
+      featImg.onerror = () => { featImg.src = screens[0].path_thumbnail; };
+    }
+    if (screens.length && stripEl) {
+      stripEl.innerHTML = screens.slice(0, 10).map((s, i) =>
+        `<img src="${s.path_thumbnail}" class="screen-thumb ${i === 0 ? 'active-thumb' : ''}"
+          onclick="setFeaturedScreen('${appId}', '${s.path_full}', this)"
+          onerror="this.style.display='none'">`
+      ).join('');
+    }
+
+    // Trailers/Videos
+    const movies = details.movies || [];
+    const videosEl = document.getElementById(`mvideos-${appId}`);
+    if (videosEl && movies.length) {
+      videosEl.innerHTML = movies.slice(0, 3).map(m => {
+        const thumb = m.thumbnail || `${S}/${appId}/movie_max_846828492.webm`;
+        const webm = m.webm?.['480'] || m.webm?.max || '';
+        const mp4 = m.mp4?.['480'] || m.mp4?.max || '';
+        return `<div style="flex:1;min-width:200px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);cursor:pointer;position:relative"
+          onclick="playModalVideo(this,'${webm || mp4}','${mp4}')">
+          <img src="${thumb}" style="width:100%;height:140px;object-fit:cover;display:block"
+            onerror="this.style.display='none'">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)">
+            <div style="width:44px;height:44px;background:rgba(255,106,0,0.85);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+          </div>
+          <div style="padding:10px 12px;font-size:12px;color:var(--text-80);font-family:var(--font-ui)">${m.name || 'Official Trailer'}</div>
+        </div>`;
+      }).join('');
+    } else if (videosEl) {
+      videosEl.innerHTML = `<div style="color:var(--text-30);font-family:var(--font-mono);font-size:11px;padding:20px 0">No official trailers available.</div>`;
+    }
+
+    // System requirements
+    const sysEl = document.getElementById(`msysreq-${appId}`);
+    if (sysEl) {
+      const pc = details.pc_requirements || {};
+      const parseReqs = (html) => {
+        if (!html) return [];
+        const rows = [];
+        const div = document.createElement('div'); div.innerHTML = html;
+        const text = div.textContent;
+        const lines = text.split('\n').filter(l => l.trim() && l.includes(':'));
+        lines.forEach(l => {
+          const idx = l.indexOf(':');
+          if (idx > 0) rows.push({ k: l.slice(0, idx).trim(), v: l.slice(idx+1).trim() });
+        });
+        return rows.slice(0, 6);
+      };
+      const minRows = parseReqs(pc.minimum);
+      const recRows = parseReqs(pc.recommended);
+      const renderRows = (rows) => rows.length
+        ? rows.map(r => `<div class="sysreq-row"><span class="sysreq-key">${r.k}</span><span class="sysreq-val">${r.v}</span></div>`).join('')
+        : `<div class="sysreq-row"><span class="sysreq-val" style="color:var(--text-30)">Not specified</span></div>`;
+      sysEl.innerHTML = `
+        <div class="sysreq-card"><div class="sysreq-label">Minimum</div>${renderRows(minRows)}</div>
+        <div class="sysreq-card"><div class="sysreq-label">Recommended</div>${renderRows(recRows)}</div>`;
+    }
+
+    // Sidebar meta
+    const metaEl = document.getElementById(`mmeta-${appId}`);
+    if (metaEl) {
+      const devs = (details.developers || []).join(', ') || 'N/A';
+      const pubs = (details.publishers || []).join(', ') || 'N/A';
+      const relDate = details.release_date?.date || 'N/A';
+      const plats = [
+        details.platforms?.windows && 'Windows',
+        details.platforms?.mac && 'macOS',
+        details.platforms?.linux && 'Linux',
+      ].filter(Boolean).join(', ') || 'Windows';
+      const dlc = details.dlc?.length || 0;
+      metaEl.innerHTML = `
+        <div class="sidebar-meta-title">Game Info</div>
+        <div class="sidebar-meta-row"><span class="sidebar-meta-key">Developer</span><span class="sidebar-meta-val">${devs}</span></div>
+        <div class="sidebar-meta-row"><span class="sidebar-meta-key">Publisher</span><span class="sidebar-meta-val">${pubs}</span></div>
+        <div class="sidebar-meta-row"><span class="sidebar-meta-key">Released</span><span class="sidebar-meta-val">${relDate}</span></div>
+        <div class="sidebar-meta-row"><span class="sidebar-meta-key">Platforms</span><span class="sidebar-meta-val">${plats}</span></div>
+        ${dlc ? `<div class="sidebar-meta-row"><span class="sidebar-meta-key">DLC</span><span class="sidebar-meta-val">${dlc} packs</span></div>` : ''}
+        <div class="sidebar-meta-row"><span class="sidebar-meta-key">App ID</span><span class="sidebar-meta-val" style="font-family:var(--font-mono);font-size:11px">${appId}</span></div>`;
+    }
   }
 
-  const dlBtn = document.getElementById(`dl-btn-${appId}`);
-  if (dlUrl) {
-    dlBtn.disabled = false;
-    dlBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Get Game`;
-    dlBtn.onclick = () => window.open(dlUrl, '_blank');
-  } else {
-    dlBtn.innerHTML = '⚠ Unavailable';
+  // ── Populate REVIEWS ──
+  if (reviews) {
+    const revEl = document.getElementById(`mrev-${appId}`);
+    if (revEl) {
+      const total = reviews.total_reviews || 0;
+      const pos   = reviews.total_positive || 0;
+      const pct   = total > 0 ? Math.round((pos / total) * 100) : 0;
+      let label = 'Overwhelmingly Positive', cls = '';
+      if (pct < 40) { label = 'Mostly Negative'; cls = 'negative'; }
+      else if (pct < 70) { label = 'Mixed'; cls = 'mixed'; }
+      else if (pct < 80) { label = 'Mostly Positive'; }
+      else if (pct < 95) { label = 'Very Positive'; }
+      revEl.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">
+          <div class="review-score-big ${cls}">${pct}%</div>
+        </div>
+        <div class="review-bar-wrap">
+          <div class="review-label ${cls}">${label}</div>
+          <div class="review-count">${total.toLocaleString()} reviews</div>
+          <div class="review-bar-track" style="margin-top:8px">
+            <div class="review-bar-fill ${cls}" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    }
+  }
+
+  // ── Download button ──
+  const dlBtn  = document.getElementById(`dlbtn-${appId}`);
+  const dlText = document.getElementById(`dlbtn-text-${appId}`);
+  if (dlBtn && dlText) {
+    if (dlUrl) {
+      dlBtn.disabled = false;
+      dlText.textContent = 'Get Game';
+      dlBtn.onclick = () => { window.open(dlUrl, '_blank'); showToast('Opening manifest link...', '📁'); };
+      // Show verified badge
+      const badge = document.getElementById(`mbadge-${appId}`);
+      if (badge) badge.style.display = '';
+    } else {
+      dlText.textContent = 'Not Available Yet';
+      dlBtn.style.opacity = '0.35';
+    }
   }
 }
 
-/* ── PAGE TRANSITIONS ──────────────────── */
+/* ── MODAL HELPERS ─────────────────────────────── */
+function setFeaturedScreen(appId, fullSrc, thumbEl) {
+  const featImg = document.getElementById(`mfeatimg-${appId}`);
+  if (featImg) {
+    featImg.style.opacity = '0';
+    featImg.src = fullSrc;
+    featImg.onload = () => { featImg.style.transition = 'opacity 0.3s'; featImg.style.opacity = '1'; };
+  }
+  document.querySelectorAll(`#mstrips-${appId} .screen-thumb`).forEach(t => t.classList.remove('active-thumb'));
+  thumbEl?.classList.add('active-thumb');
+}
+
+function switchMediaTab(tabEl, type, appId) {
+  tabEl.closest('.media-tabs').querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  const ssEl = document.getElementById(`media-screenshots-${appId}`);
+  const vidEl = document.getElementById(`media-videos-${appId}`);
+  if (ssEl) ssEl.style.display = type === 'screenshots' ? '' : 'none';
+  if (vidEl) vidEl.style.display = type === 'videos' ? '' : 'none';
+}
+
+function playModalVideo(container, webm, mp4) {
+  container.innerHTML = `<video autoplay controls style="width:100%;display:block;border-radius:10px">
+    ${webm ? `<source src="${webm}" type="video/webm">` : ''}
+    ${mp4  ? `<source src="${mp4}"  type="video/mp4">` : ''}
+    Your browser doesn't support HTML5 video.
+  </video>`;
+}
+
+function openLightbox(src) {
+  const lb = document.createElement('div');
+  lb.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.96);display:flex;align-items:center;justify-content:center;cursor:zoom-out;animation:modalOverlayIn 0.2s ease forwards';
+  lb.innerHTML = `<img src="${src}" style="max-width:92vw;max-height:92vh;border-radius:12px;box-shadow:0 40px 100px rgba(0,0,0,0.9)">`;
+  lb.onclick = () => lb.remove();
+  document.body.appendChild(lb);
+}
+
+/* ── PAGE TRANSITIONS ──────────────────────────── */
 function initPageTransitions() {
   document.querySelectorAll('a[href]').forEach(link => {
     const href = link.getAttribute('href');
@@ -169,7 +568,7 @@ function initPageTransitions() {
   });
 }
 
-/* ── SCROLL REVEAL ─────────────────────── */
+/* ── SCROLL REVEAL ─────────────────────────────── */
 function initReveal() {
   const ro = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); ro.unobserve(e.target); } });
@@ -177,14 +576,14 @@ function initReveal() {
   document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
 }
 
-/* ── NAV ───────────────────────────────── */
+/* ── NAV ───────────────────────────────────────── */
 function initNav() {
   window.addEventListener('scroll', () => {
     document.querySelector('nav')?.classList.toggle('scrolled', window.scrollY > 40);
   });
 }
 
-/* ── LOADER — CINEMATIC ────────────────── */
+/* ── LOADER — CINEMATIC ────────────────────────── */
 function initLoader() {
   const loader = document.createElement('div');
   loader.id = 'st-loader';
@@ -195,10 +594,11 @@ function initLoader() {
         <div class="loader-ring r1"></div>
         <div class="loader-ring r2"></div>
         <div class="loader-ring r3"></div>
-        <div class="loader-icon">ST</div>
+        <div class="loader-logo-wrap" style="position:absolute">
+          <img src="icon.png" class="loader-brand-img" alt="Logo" onerror="this.style.display='none'" style="width:48px;height:48px;border-radius:0;object-fit:contain">
+        </div>
       </div>
       <div class="loader-logo-wrap">
-        <img src="icon.png" class="loader-brand-img" alt="Logo" onerror="this.style.display='none'">
         <span class="loader-title">STRAW<span>HAT</span></span>
       </div>
       <div class="loader-progress">
@@ -212,154 +612,92 @@ function initLoader() {
     </div>`;
   document.body.appendChild(loader);
 
-  /* Particle canvas */
   const canvas = loader.querySelector('#loader-canvas');
   const ctx = canvas.getContext('2d');
   let W, H, particles = [], animId;
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  /* Spawn particles */
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
   for (let i = 0; i < 80; i++) {
-    particles.push({
-      x: Math.random() * 1920,
-      y: Math.random() * 1080,
-      vx: (Math.random() - .5) * 0.5,
-      vy: (Math.random() - .5) * 0.5,
-      r: Math.random() * 1.4 + 0.3,
-      hue: Math.random() > 0.6 ? 20 : Math.random() > 0.5 ? 345 : 195,
-      alpha: Math.random() * 0.5 + 0.1,
-      pulse: Math.random() * Math.PI * 2
-    });
+    particles.push({ x: Math.random()*1920, y: Math.random()*1080, vx: (Math.random()-.5)*.5, vy: (Math.random()-.5)*.5,
+      r: Math.random()*1.4+.3, hue: Math.random()>.6?20:Math.random()>.5?345:195, alpha: Math.random()*.5+.1, pulse: Math.random()*Math.PI*2 });
   }
-
   function drawLoader(ts) {
-    ctx.clearRect(0, 0, W, H);
-    const t = ts * 0.001;
-
-    /* Draw connections */
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        if (d < 120) {
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(255,106,0,${(1 - d/120) * 0.07})`;
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-        }
+    ctx.clearRect(0,0,W,H);
+    for (let i=0;i<particles.length;i++) {
+      for (let j=i+1;j<particles.length;j++) {
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y, d=Math.sqrt(dx*dx+dy*dy);
+        if (d<120) { ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.strokeStyle=`rgba(255,106,0,${(1-d/120)*.07})`; ctx.lineWidth=.5; ctx.stroke(); }
       }
     }
-
-    /* Draw + move particles */
     particles.forEach(p => {
-      p.x += p.vx; p.y += p.vy; p.pulse += 0.02;
-      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
-      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-      const a = p.alpha * (0.7 + 0.3 * Math.sin(p.pulse));
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${p.hue},100%,65%,${a})`;
-      ctx.fill();
+      p.x+=p.vx; p.y+=p.vy; p.pulse+=.02;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      const a=p.alpha*(.7+.3*Math.sin(p.pulse));
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`hsla(${p.hue},100%,65%,${a})`; ctx.fill();
     });
-
     animId = requestAnimationFrame(drawLoader);
   }
   animId = requestAnimationFrame(drawLoader);
-
-  /* Percentage counter */
   const pctEl = loader.querySelector('#loader-pct');
   let pct = 0;
   const pctTimer = setInterval(() => {
-    pct = Math.min(100, pct + Math.floor(Math.random() * 18) + 6);
+    pct = Math.min(100, pct + Math.floor(Math.random()*18)+6);
     if (pctEl) pctEl.textContent = pct + '%';
     if (pct >= 100) clearInterval(pctTimer);
   }, 160);
-
-  /* Dismiss */
-  setTimeout(() => {
-    cancelAnimationFrame(animId);
-    loader.classList.add('fade-out');
-    setTimeout(() => loader.remove(), 800);
-  }, 1800);
+  setTimeout(() => { cancelAnimationFrame(animId); loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 800); }, 1800);
 }
 
-/* ── DOODLE CANVAS (background lines) ─── */
+/* ── DOODLE CANVAS ──────────────────────────────── */
 function initDoodleCanvas() {
   const canvas = document.getElementById('doodle-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
-  resize();
-  window.addEventListener('resize', resize);
-
+  resize(); window.addEventListener('resize', resize);
   const lines = Array.from({length:14}, () => ({
-    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-    vx: (Math.random()-.5)*0.7, vy: (Math.random()-.5)*0.7,
-    len: 40+Math.random()*110, angle: Math.random()*Math.PI*2,
-    av: (Math.random()-.5)*0.014,
-    hue: Math.random()>0.5 ? '#ff6a00' : '#ff3d6e',
-    phase: Math.random()*Math.PI*2
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    vx: (Math.random()-.5)*.7, vy: (Math.random()-.5)*.7,
+    len: 40+Math.random()*110, angle: Math.random()*Math.PI*2, av: (Math.random()-.5)*.014,
+    hue: Math.random()>.5?'#ff6a00':'#ff3d6e', phase: Math.random()*Math.PI*2
   }));
   const circles = Array.from({length:9}, () => ({
     x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-    r: 18+Math.random()*60, vx: (Math.random()-.5)*0.45, vy: (Math.random()-.5)*0.45,
+    r: 18+Math.random()*60, vx: (Math.random()-.5)*.45, vy: (Math.random()-.5)*.45,
     phase: Math.random()*Math.PI*2, cyan: Math.random()>.55
   }));
-
   let t = 0;
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    t += 0.012;
+    ctx.clearRect(0,0,canvas.width,canvas.height); t+=.012;
     lines.forEach(l => {
       l.x+=l.vx; l.y+=l.vy; l.angle+=l.av;
-      if(l.x<0||l.x>canvas.width) l.vx*=-1;
-      if(l.y<0||l.y>canvas.height) l.vy*=-1;
+      if(l.x<0||l.x>canvas.width)l.vx*=-1; if(l.y<0||l.y>canvas.height)l.vy*=-1;
       ctx.save(); ctx.translate(l.x,l.y); ctx.rotate(l.angle);
-      ctx.strokeStyle=l.hue; ctx.lineWidth=1.5;
-      ctx.globalAlpha=0.45+0.3*Math.sin(t+l.phase);
+      ctx.strokeStyle=l.hue; ctx.lineWidth=1.5; ctx.globalAlpha=.45+.3*Math.sin(t+l.phase);
       ctx.beginPath(); ctx.moveTo(-l.len/2,0); ctx.lineTo(l.len/2,0); ctx.stroke();
-      // small tick marks
-      ctx.lineWidth=1; ctx.globalAlpha=0.3;
+      ctx.lineWidth=1; ctx.globalAlpha=.3;
       ctx.beginPath(); ctx.moveTo(-l.len/2,-5); ctx.lineTo(-l.len/2,5); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(l.len/2,-5); ctx.lineTo(l.len/2,5); ctx.stroke();
       ctx.restore();
     });
     circles.forEach(c => {
       c.x+=c.vx; c.y+=c.vy;
-      if(c.x<-c.r||c.x>canvas.width+c.r) c.vx*=-1;
-      if(c.y<-c.r||c.y>canvas.height+c.r) c.vy*=-1;
-      ctx.save();
-      ctx.strokeStyle = c.cyan ? '#00f0ff' : '#ff6a00';
-      ctx.lineWidth = 1; ctx.globalAlpha=0.28+0.18*Math.sin(t*0.7+c.phase);
-      ctx.beginPath(); ctx.arc(c.x,c.y,c.r*(0.88+0.12*Math.sin(t+c.phase)),0,Math.PI*2); ctx.stroke();
-      ctx.restore();
+      if(c.x<-c.r||c.x>canvas.width+c.r)c.vx*=-1; if(c.y<-c.r||c.y>canvas.height+c.r)c.vy*=-1;
+      ctx.save(); ctx.strokeStyle=c.cyan?'#00f0ff':'#ff6a00'; ctx.lineWidth=1; ctx.globalAlpha=.28+.18*Math.sin(t*.7+c.phase);
+      ctx.beginPath(); ctx.arc(c.x,c.y,c.r*(.88+.12*Math.sin(t+c.phase)),0,Math.PI*2); ctx.stroke(); ctx.restore();
     });
-    // plus signs scattered
     for(let i=0;i<6;i++) {
-      const x=(canvas.width*(i+0.5))/6+28*Math.sin(t*0.35+i);
-      const y=canvas.height*0.5+38*Math.cos(t*0.28+i*1.2);
-      ctx.save(); ctx.strokeStyle='#ff6a00'; ctx.lineWidth=1.5; ctx.globalAlpha=0.22;
-      ctx.translate(x,y); ctx.rotate(t*0.18+i);
-      ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(8,0); ctx.moveTo(0,-8); ctx.lineTo(0,8); ctx.stroke();
-      ctx.restore();
+      const x=(canvas.width*(i+.5))/6+28*Math.sin(t*.35+i), y=canvas.height*.5+38*Math.cos(t*.28+i*1.2);
+      ctx.save(); ctx.strokeStyle='#ff6a00'; ctx.lineWidth=1.5; ctx.globalAlpha=.22; ctx.translate(x,y); ctx.rotate(t*.18+i);
+      ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(8,0); ctx.moveTo(0,-8); ctx.lineTo(0,8); ctx.stroke(); ctx.restore();
     }
     requestAnimationFrame(draw);
   }
   draw();
 }
 
-/* ── DOODLE PREVIEWS (canvas animations) ─ */
+/* ── DOODLE PREVIEWS ────────────────────────────── */
 function initDoodlePreviews() {
-  // Energy orb
   const d1el = document.getElementById('doodle-1');
   if (d1el) {
     const c = makeCanvas(d1el); let t=0;
@@ -368,45 +706,37 @@ function initDoodlePreviews() {
       const ctx=c.getContext('2d'), cx=c.width/2, cy=c.height/2;
       ctx.clearRect(0,0,c.width,c.height);
       for(let i=0;i<10;i++){
-        const a=(i/10)*Math.PI*2+t, r=30+16*Math.sin(t*2+i*0.7);
+        const a=(i/10)*Math.PI*2+t, r=30+16*Math.sin(t*2+i*.7);
         ctx.beginPath(); ctx.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),3.5,0,Math.PI*2);
-        ctx.fillStyle=`hsl(${16+i*14},100%,60%)`; ctx.globalAlpha=0.85; ctx.fill();
+        ctx.fillStyle=`hsl(${16+i*14},100%,60%)`; ctx.globalAlpha=.85; ctx.fill();
       }
-      // connecting lines
-      ctx.globalAlpha=0.12; ctx.strokeStyle='#ff6a00'; ctx.lineWidth=1;
+      ctx.globalAlpha=.12; ctx.strokeStyle='#ff6a00'; ctx.lineWidth=1;
       for(let i=0;i<10;i++){
-        const a=(i/10)*Math.PI*2+t, r=30+16*Math.sin(t*2+i*0.7);
-        const nx=cx+r*Math.cos(a), ny=cy+r*Math.sin(a);
-        const b=((i+1)%10/10)*Math.PI*2+t, rn=30+16*Math.sin(t*2+(i+1)*0.7);
+        const a=(i/10)*Math.PI*2+t, r=30+16*Math.sin(t*2+i*.7), nx=cx+r*Math.cos(a), ny=cy+r*Math.sin(a);
+        const b=((i+1)%10/10)*Math.PI*2+t, rn=30+16*Math.sin(t*2+(i+1)*.7);
         ctx.beginPath(); ctx.moveTo(nx,ny); ctx.lineTo(cx+rn*Math.cos(b),cy+rn*Math.sin(b)); ctx.stroke();
       }
       const g=ctx.createRadialGradient(cx,cy,0,cx,cy,44);
       g.addColorStop(0,'rgba(255,106,0,0.55)'); g.addColorStop(1,'rgba(255,106,0,0)');
-      ctx.beginPath(); ctx.arc(cx,cy,44,0,Math.PI*2);
-      ctx.fillStyle=g; ctx.globalAlpha=0.45+0.3*Math.sin(t); ctx.fill();
-      t+=0.04; requestAnimationFrame(draw);
+      ctx.beginPath(); ctx.arc(cx,cy,44,0,Math.PI*2); ctx.fillStyle=g; ctx.globalAlpha=.45+.3*Math.sin(t); ctx.fill();
+      t+=.04; requestAnimationFrame(draw);
     } draw();
   }
-  // Neon waves
   const d2el = document.getElementById('doodle-2');
   if (d2el) {
     const c = makeCanvas(d2el); let t=0;
     function draw() {
       c.width=d2el.offsetWidth||260; c.height=d2el.offsetHeight||180;
-      const ctx=c.getContext('2d');
-      ctx.clearRect(0,0,c.width,c.height);
+      const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
       for(let i=0;i<6;i++){
         const y=c.height/2+(i-2.5)*22;
         ctx.beginPath(); ctx.moveTo(0,y);
-        for(let x=0;x<=c.width;x+=3){
-          ctx.lineTo(x, y+Math.sin(x*0.038+(t+i*0.5))*16*Math.abs(Math.sin(t*0.4+i*0.4)));
-        }
-        ctx.strokeStyle=`hsl(${350+i*18},100%,62%)`; ctx.lineWidth=1.8; ctx.globalAlpha=0.65-i*0.07; ctx.stroke();
+        for(let x=0;x<=c.width;x+=3) ctx.lineTo(x, y+Math.sin(x*.038+(t+i*.5))*16*Math.abs(Math.sin(t*.4+i*.4)));
+        ctx.strokeStyle=`hsl(${350+i*18},100%,62%)`; ctx.lineWidth=1.8; ctx.globalAlpha=.65-i*.07; ctx.stroke();
       }
-      t+=0.045; requestAnimationFrame(draw);
+      t+=.045; requestAnimationFrame(draw);
     } draw();
   }
-  // Void swirl
   const d3el = document.getElementById('doodle-3');
   if (d3el) {
     const c = makeCanvas(d3el); let t=0;
@@ -417,14 +747,13 @@ function initDoodlePreviews() {
       for(let s=0;s<3;s++){
         ctx.beginPath();
         for(let i=0;i<220;i++){
-          const angle=(i/32)*Math.PI*2+t+s*2.09, r=6+i*0.3;
+          const angle=(i/32)*Math.PI*2+t+s*2.09, r=6+i*.3;
           const x=cx+r*Math.cos(angle), y=cy+r*Math.sin(angle);
           i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
         }
-        ctx.strokeStyle=s===0?'#ff6a00':s===1?'#ff3d6e':'#00f0ff';
-        ctx.lineWidth=1.2; ctx.globalAlpha=0.6; ctx.stroke();
+        ctx.strokeStyle=s===0?'#ff6a00':s===1?'#ff3d6e':'#00f0ff'; ctx.lineWidth=1.2; ctx.globalAlpha=.6; ctx.stroke();
       }
-      t+=0.016; requestAnimationFrame(draw);
+      t+=.016; requestAnimationFrame(draw);
     } draw();
   }
 }
@@ -435,21 +764,22 @@ function makeCanvas(container) {
   container.appendChild(c); return c;
 }
 
-/* ── STAT COUNTER ──────────────────────── */
+/* ── STAT COUNTER ────────────────────────────────── */
 function initCounters() {
   document.querySelectorAll('.desc-stat-num[data-count]').forEach(el => {
     const target = parseInt(el.dataset.count);
-    const suffix = el.textContent.replace(/[0-9]/g,'').trim();
+    if (!target || isNaN(target)) return;
+    const suffix = el.textContent.replace(/[\d,]/g,'').trim();
     let started = false;
     const ro = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && !started) {
         started = true;
-        let cur = 0; const step = Math.ceil(target/60);
+        let cur = 0; const step = Math.max(1, Math.ceil(target/80));
         const iv = setInterval(() => {
           cur = Math.min(cur+step, target);
           el.textContent = cur.toLocaleString()+suffix;
           if (cur >= target) clearInterval(iv);
-        }, 18);
+        }, 16);
         ro.unobserve(el);
       }
     });
@@ -457,7 +787,7 @@ function initCounters() {
   });
 }
 
-/* ── TOAST ─────────────────────────────── */
+/* ── TOAST ───────────────────────────────────────── */
 function showToast(msg, icon='✓') {
   const t = document.createElement('div');
   t.className = 'st-toast';
@@ -466,126 +796,65 @@ function showToast(msg, icon='✓') {
   setTimeout(() => { t.classList.add('hide'); setTimeout(()=>t.remove(),300); }, 2800);
 }
 
-/* ── INIT ──────────────────────────────── */
-
-
-/* ── DOODLE EMPIRE — animated doodles + canvas ── */
+/* ── DOODLE EMPIRE ───────────────────────────────── */
 function initDoodleEmpire() {
   const section = document.getElementById('doodle-empire');
   const doodleWrap = document.getElementById('empire-doodles');
   const canvas = document.getElementById('empire-canvas');
   if (!section || !doodleWrap || !canvas) return;
-
-  const ctx = canvas.getContext('2d');
-  let W, H;
-
-  function resize() {
-    W = canvas.width  = section.offsetWidth;
-    H = canvas.height = section.offsetHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  /* ── Background canvas: floating lines + circles ── */
-  const lines  = Array.from({length: 18}, () => ({
-    x: Math.random() * 1600, y: Math.random() * 500,
-    vx: (Math.random() - .5) * .55, vy: (Math.random() - .5) * .55,
-    len: 50 + Math.random() * 120, angle: Math.random() * Math.PI * 2,
-    av: (Math.random() - .5) * .013,
-    col: Math.random() > .5 ? 'rgba(255,106,0,' : 'rgba(255,61,110,',
-    alpha: .06 + Math.random() * .1,
-  }));
-  const circles = Array.from({length: 11}, () => ({
-    x: Math.random() * 1600, y: Math.random() * 500,
-    r: 22 + Math.random() * 70,
-    vx: (Math.random() - .5) * .4, vy: (Math.random() - .5) * .4,
-    phase: Math.random() * Math.PI * 2,
-    col: Math.random() > .6 ? 'rgba(255,106,0,' : 'rgba(0,212,255,',
-  }));
-
+  const ctx = canvas.getContext('2d'); let W, H;
+  function resize() { W = canvas.width = section.offsetWidth; H = canvas.height = section.offsetHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const lines = Array.from({length:18}, () => ({ x:Math.random()*1600, y:Math.random()*500, vx:(Math.random()-.5)*.55, vy:(Math.random()-.5)*.55, len:50+Math.random()*120, angle:Math.random()*Math.PI*2, av:(Math.random()-.5)*.013, col:Math.random()>.5?'rgba(255,106,0,':'rgba(255,61,110,', alpha:.06+Math.random()*.1 }));
+  const circles = Array.from({length:11}, () => ({ x:Math.random()*1600, y:Math.random()*500, r:22+Math.random()*70, vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.4, phase:Math.random()*Math.PI*2, col:Math.random()>.6?'rgba(255,106,0,':'rgba(0,212,255,' }));
   let t = 0;
   function drawBg() {
-    ctx.clearRect(0, 0, W, H);
-    t += 0.012;
-
+    ctx.clearRect(0,0,W,H); t+=.012;
     lines.forEach(l => {
-      l.x += l.vx; l.y += l.vy; l.angle += l.av;
-      if (l.x < -150) l.x = W + 50; if (l.x > W + 150) l.x = -50;
-      if (l.y < -80)  l.y = H + 40; if (l.y > H + 80)  l.y = -40;
-      const a = l.alpha * (0.6 + 0.4 * Math.sin(t + l.phase || 0));
-      const x2 = l.x + Math.cos(l.angle) * l.len;
-      const y2 = l.y + Math.sin(l.angle) * l.len;
-      ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(x2, y2);
-      ctx.strokeStyle = l.col + a + ')'; ctx.lineWidth = 1; ctx.stroke();
+      l.x+=l.vx; l.y+=l.vy; l.angle+=l.av;
+      if(l.x<-150)l.x=W+50; if(l.x>W+150)l.x=-50; if(l.y<-80)l.y=H+40; if(l.y>H+80)l.y=-40;
+      const a=l.alpha*(.6+.4*Math.sin(t+(l.phase||0)));
+      ctx.beginPath(); ctx.moveTo(l.x,l.y); ctx.lineTo(l.x+Math.cos(l.angle)*l.len, l.y+Math.sin(l.angle)*l.len);
+      ctx.strokeStyle=l.col+a+')'; ctx.lineWidth=1; ctx.stroke();
     });
-
     circles.forEach(c => {
-      c.x += c.vx; c.y += c.vy; c.phase += 0.018;
-      if (c.x < -100) c.x = W + 60; if (c.x > W + 100) c.x = -60;
-      if (c.y < -100) c.y = H + 60; if (c.y > H + 100) c.y = -60;
-      const a = 0.04 + 0.04 * Math.sin(c.phase);
-      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-      ctx.strokeStyle = c.col + a + ')'; ctx.lineWidth = 1; ctx.stroke();
+      c.x+=c.vx; c.y+=c.vy; c.phase+=.018;
+      if(c.x<-100)c.x=W+60; if(c.x>W+100)c.x=-60; if(c.y<-100)c.y=H+60; if(c.y>H+100)c.y=-60;
+      const a=.04+.04*Math.sin(c.phase);
+      ctx.beginPath(); ctx.arc(c.x,c.y,c.r,0,Math.PI*2); ctx.strokeStyle=c.col+a+')'; ctx.lineWidth=1; ctx.stroke();
     });
-
     requestAnimationFrame(drawBg);
   }
   drawBg();
-
-  /* ── SVG Doodles orbiting around the text ── */
   const DOODLES = [
-    // [svg markup, orbit radius, orbit speed, start angle, size]
-    ['<circle cx="22" cy="22" r="20" stroke="#ff6a00" stroke-width="1.5" stroke-dasharray="6 4" fill="none"/><line x1="22" y1="2" x2="22" y2="42" stroke="#ff6a00" stroke-width="0.8"/><line x1="2" y1="22" x2="42" y2="22" stroke="#ff6a00" stroke-width="0.8"/>', 44, 44, 0.009, 0],
-    ['<rect x="4" y="4" width="40" height="40" rx="4" stroke="#ff3d6e" stroke-width="1.5" stroke-dasharray="8 4" fill="none"/><rect x="12" y="12" width="24" height="24" rx="2" stroke="#ff3d6e" stroke-width="1" fill="none"/>', 48, 48, 1.2, 0.004],
-    ['<polygon points="24,4 44,40 4,40" stroke="#fff" stroke-width="1.5" stroke-dasharray="5 3" fill="none"/><circle cx="24" cy="30" r="6" stroke="#ff6a00" stroke-width="1.2" fill="none"/>', 48, 48, 2.4, -0.007],
-    ['<path d="M24 4 L44 24 L24 44 L4 24 Z" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none"/><circle cx="24" cy="24" r="8" stroke="#00d4ff" stroke-width="1" fill="none"/>', 48, 48, 3.7, 0.006],
-    ['<circle cx="22" cy="22" r="20" stroke="#ff6a00" stroke-width="1" stroke-dasharray="3 3" fill="none"/><circle cx="22" cy="22" r="12" stroke="#ff3d6e" stroke-width="1.2" fill="none"/><circle cx="22" cy="22" r="4" stroke="#fff" stroke-width="1" fill="none"/>', 44, 44, 0.8, -0.005],
-    ['<rect x="2" y="2" width="36" height="36" rx="18" stroke="#ff3d6e" stroke-width="1.2" stroke-dasharray="4 3" fill="none"/><rect x="10" y="10" width="20" height="20" rx="10" stroke="#ff6a00" stroke-width="1.5" fill="none"/>', 40, 40, 5.2, 0.008],
-    ['<path d="M4 20 Q20 4 36 20 Q20 36 4 20Z" stroke="#fff" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/><path d="M10 20 Q20 10 30 20 Q20 30 10 20Z" stroke="#ff6a00" stroke-width="1" fill="none"/>', 40, 40, 4.1, -0.006],
-    ['<polygon points="20,2 38,16 32,36 8,36 2,16" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none"/><circle cx="20" cy="22" r="6" stroke="#00d4ff" stroke-width="1.2" fill="none"/>', 40, 40, 2.9, 0.005],
+    ['<circle cx="22" cy="22" r="20" stroke="#ff6a00" stroke-width="1.5" stroke-dasharray="6 4" fill="none"/><line x1="22" y1="2" x2="22" y2="42" stroke="#ff6a00" stroke-width="0.8"/><line x1="2" y1="22" x2="42" y2="22" stroke="#ff6a00" stroke-width="0.8"/>', 44,44,0,.009],
+    ['<rect x="4" y="4" width="40" height="40" rx="4" stroke="#ff3d6e" stroke-width="1.5" stroke-dasharray="8 4" fill="none"/><rect x="12" y="12" width="24" height="24" rx="2" stroke="#ff3d6e" stroke-width="1" fill="none"/>', 48,48,1.2,.004],
+    ['<polygon points="24,4 44,40 4,40" stroke="#fff" stroke-width="1.5" stroke-dasharray="5 3" fill="none"/><circle cx="24" cy="30" r="6" stroke="#ff6a00" stroke-width="1.2" fill="none"/>', 48,48,2.4,-.007],
+    ['<path d="M24 4 L44 24 L24 44 L4 24 Z" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none"/><circle cx="24" cy="24" r="8" stroke="#00d4ff" stroke-width="1" fill="none"/>', 48,48,3.7,.006],
+    ['<circle cx="22" cy="22" r="20" stroke="#ff6a00" stroke-width="1" stroke-dasharray="3 3" fill="none"/><circle cx="22" cy="22" r="12" stroke="#ff3d6e" stroke-width="1.2" fill="none"/><circle cx="22" cy="22" r="4" stroke="#fff" stroke-width="1" fill="none"/>', 44,44,.8,-.005],
   ];
-
-  // Place doodles spread around the section
-  const cx = section.offsetWidth / 2;
-  const cy = section.offsetHeight / 2;
-  const spreadX = section.offsetWidth * 0.38;
-  const spreadY = section.offsetHeight * 0.38;
-
-  const empEls = DOODLES.map((d, i) => {
-    const div = document.createElement('div');
-    div.className = 'emp-doodle';
-    const [markup, w, h, startAngle, speed] = d;
+  const empEls = DOODLES.map((d) => {
+    const div = document.createElement('div'); div.className='emp-doodle';
+    const [markup,w,h,startAngle,speed] = d;
     div.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none">${markup}</svg>`;
-
-    // Each doodle gets an orbit around the text center
-    const orbitRx = spreadX * (0.7 + Math.random() * 0.6);
-    const orbitRy = spreadY * (0.5 + Math.random() * 0.5);
-    div._orbitRx = orbitRx;
-    div._orbitRy = orbitRy;
-    div._angle = startAngle;
-    div._speed = speed !== 0 ? speed : (Math.random() - .5) * .008;
-    div._selfRot = 0;
-    div._selfRotSpeed = (Math.random() - .5) * 0.015;
-    doodleWrap.appendChild(div);
-    return div;
+    const spreadX = section.offsetWidth*.38, spreadY = section.offsetHeight*.38;
+    div._orbitRx = spreadX*(.7+Math.random()*.6); div._orbitRy = spreadY*(.5+Math.random()*.5);
+    div._angle = startAngle; div._speed = speed || (Math.random()-.5)*.008;
+    div._selfRot = 0; div._selfRotSpeed = (Math.random()-.5)*.015;
+    doodleWrap.appendChild(div); return div;
   });
-
   function animateDoodles() {
-    const sw = section.offsetWidth / 2;
-    const sh = section.offsetHeight / 2;
-
+    const sw=section.offsetWidth/2, sh=section.offsetHeight/2;
     empEls.forEach(el => {
-      el._angle += el._speed;
-      el._selfRot += el._selfRotSpeed;
-      const x = sw + Math.cos(el._angle) * el._orbitRx - 24;
-      const y = sh + Math.sin(el._angle) * el._orbitRy - 24;
-      el.style.transform = `translate(${x}px, ${y}px) rotate(${el._selfRot}rad)`;
+      el._angle+=el._speed; el._selfRot+=el._selfRotSpeed;
+      el.style.transform=`translate(${sw+Math.cos(el._angle)*el._orbitRx-24}px,${sh+Math.sin(el._angle)*el._orbitRy-24}px) rotate(${el._selfRot}rad)`;
     });
     requestAnimationFrame(animateDoodles);
   }
   animateDoodles();
 }
 
+/* ── INIT ────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initLoader();
   initPageTransitions();
@@ -593,11 +862,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initNav();
   if (document.getElementById('doodle-canvas')) initDoodleCanvas();
   initDoodleEmpire();
-  if (document.getElementById('doodle-1'))     setTimeout(initDoodlePreviews, 80);
+  if (document.getElementById('doodle-1')) setTimeout(initDoodlePreviews, 80);
+  // Run counters first with catalog count, then fetch live data
   initCounters();
-  // Ensure bg-overlay exists
+  initLiveStats();
   if (!document.querySelector('.bg-overlay')) {
-    const o = document.createElement('div'); o.className='bg-overlay';
-    document.body.prepend(o);
+    const o = document.createElement('div'); o.className='bg-overlay'; document.body.prepend(o);
   }
 });

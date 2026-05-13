@@ -21,7 +21,7 @@ function buildSlider() {
     <div class="slide ${i === 0 ? 'active' : ''}" data-index="${i}" data-id="${g.id}">
       <div class="slide-bg-container">
         <img
-          src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg"
+          src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/library_hero.jpg"
           alt="${g.short}"
           onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/capsule_616x353.jpg'"
           loading="lazy">
