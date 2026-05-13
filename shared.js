@@ -1,4 +1,4 @@
-/* STEAMTOOLS — SHARED SCRIPTS (no cursor) */
+/* STRAW HAT — SHARED SCRIPTS (no cursor) */
 
 const STEAMTOOLS_CONFIG = {
   GAMEGEN_KEY:  'mg_89fab80a0e6c4949b0c169de799f4499',
@@ -191,10 +191,10 @@ function initLoader() {
   loader.innerHTML = `
     <div class="loader-logo-wrap">
       <div class="loader-icon">ST</div>
-      <span class="loader-title">STEAM<span>TOOLS</span></span>
+      <span class="loader-title">STRAW<span>HAT</span></span>
     </div>
     <div class="loader-bar"><div class="loader-fill"></div></div>
-    <span class="loader-tag">Accessing the vault...</span>`;
+    <span class="loader-tag">Entering the vault...</span>`;
   document.body.appendChild(loader);
   setTimeout(() => { loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 700); }, 1400);
 }

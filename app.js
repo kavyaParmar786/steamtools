@@ -1,6 +1,8 @@
-/* STEAMTOOLS — APP.JS (homepage only) */
+/* STRAW HAT — APP.JS */
 document.addEventListener('DOMContentLoaded', () => {
-  // Doodle previews are inited in shared.js via initDoodlePreviews()
-  // Counters are inited in shared.js via initCounters()
-  // Nothing extra needed here
+  // Doodle previews init (mini versions for showcase section)
+  if (document.getElementById('doodle-1')) {
+    setTimeout(initDoodlePreviews, 80);
+  }
+  // initCounters + initDoodleCanvas called by shared.js already
 });

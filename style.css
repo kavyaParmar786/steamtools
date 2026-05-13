@@ -531,3 +531,257 @@ select.t-input option { background:#0a0f1a; color:var(--text-80); }
   .desc-stat{border-right:none;border-bottom:1px solid var(--glass-border)}
   .desc-stat:last-child{border-bottom:none}
 }
+
+/* ══════════════════════════════════════════════
+   STRAW HAT — ADDITIVE PATCHES (appended)
+   ══════════════════════════════════════════════ */
+
+/* ── GLOBAL DOODLES (scattered behind everything) ── */
+.global-doodles {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.gdoodle { position: absolute; opacity: 0.07; }
+.gd1  { top:8%;  left:3%;   animation: gdf1 9s  ease-in-out infinite; }
+.gd2  { top:18%; right:5%;  animation: gdf2 13s ease-in-out infinite; }
+.gd3  { top:35%; left:1%;   animation: gdf3 8s  ease-in-out infinite; }
+.gd4  { top:55%; right:2%;  animation: gdf1 11s ease-in-out infinite reverse; }
+.gd5  { top:72%; left:4%;   animation: gdf2 7s  ease-in-out infinite; }
+.gd6  { top:85%; right:6%;  animation: gdf3 15s ease-in-out infinite; }
+.gd7  { top:28%; left:48%;  animation: gdf1 10s ease-in-out infinite; opacity:0.04; }
+.gd8  { top:62%; left:55%;  animation: gdf2 12s ease-in-out infinite; opacity:0.05; }
+.gd9  { top:45%; right:18%; animation: gdf3 9s  ease-in-out infinite; opacity:0.06; }
+.gd10 { top:15%; left:30%;  animation: gdf1 14s ease-in-out infinite; opacity:0.04; }
+@keyframes gdf1 { 0%,100%{transform:translateY(0) rotate(0deg)} 33%{transform:translateY(-16px) rotate(5deg)} 66%{transform:translateY(9px) rotate(-4deg)} }
+@keyframes gdf2 { 0%,100%{transform:translateX(0) rotate(0deg)} 50%{transform:translateX(18px) rotate(10deg)} }
+@keyframes gdf3 { 0%,100%{transform:scale(1) rotate(0deg)} 40%{transform:scale(1.1) rotate(-7deg)} 70%{transform:scale(0.92) rotate(5deg)} }
+
+/* ── NAV — BLACK & WHITE redesign ─────────────── */
+nav {
+  background: rgba(0,0,0,0.92) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+nav.scrolled {
+  background: rgba(0,0,0,0.97) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.95) !important;
+}
+.nav-logo-icon, .footer-logo-icon {
+  background: #fff !important;
+  color: #000 !important;
+  box-shadow: 0 0 0px transparent !important;
+}
+.nav-logo-text, .footer-logo-text { color: #fff !important; }
+.nav-logo-text span, .footer-logo-text span {
+  color: #fff !important;
+  font-style: italic;
+}
+.nav-sep { background: rgba(255,255,255,0.12) !important; }
+.nav-links a { color: rgba(255,255,255,0.45) !important; letter-spacing: 1.8px; }
+.nav-links a:hover { color: #fff !important; }
+.nav-links a.active { color: #fff !important; }
+.nav-links a::after { background: #fff !important; }
+
+/* Discord nav button — white style */
+.nav-btn-discord {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px;
+  font-family: var(--font-ui); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #000; text-decoration: none;
+  background: #fff;
+  border: none; border-radius: 9px;
+  transition: all 0.25s var(--ease);
+  white-space: nowrap;
+}
+.nav-btn-discord:hover {
+  background: rgba(255,255,255,0.85);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(255,255,255,0.2);
+}
+
+/* ── SLIDER TITLE — SMALLER ──────────────────── */
+.slide-title-huge {
+  font-size: clamp(36px, 5.5vw, 90px) !important;
+  -webkit-text-stroke: 1.5px rgba(255,255,255,0.88) !important;
+  letter-spacing: 0.04em !important;
+}
+.slide-title-huge.long-title {
+  font-size: clamp(24px, 3.5vw, 64px) !important;
+}
+.slide-title-huge:hover {
+  color: #fff !important;
+  -webkit-text-stroke: 1.5px transparent !important;
+  text-shadow: 0 2px 30px rgba(255,255,255,0.2) !important;
+}
+
+/* ── DESC PILLS ──────────────────────────────── */
+.desc-pills {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  justify-content: center; margin-bottom: 36px;
+}
+.desc-pill {
+  padding: 8px 18px;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  color: var(--text-80);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 100px;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s var(--ease);
+}
+.desc-pill:hover {
+  background: rgba(255,106,0,0.1);
+  border-color: rgba(255,106,0,0.3);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* ── DOODLE SHOWCASE SECTION ─────────────────── */
+.doodle-showcase {
+  padding: 100px 0;
+  position: relative; z-index: 1;
+}
+.showcase-inner {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 72px;
+  align-items: center;
+}
+.mini-doodle-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 14px;
+}
+.mini-doodle-card {
+  display: flex; flex-direction: column; gap: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 14px;
+  transition: all 0.35s var(--ease);
+}
+.mini-doodle-card:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,106,0,0.28);
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 30px rgba(255,106,0,0.1);
+}
+.mini-doodle-preview {
+  height: 120px; border-radius: 10px;
+  position: relative; overflow: hidden;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.mini-doodle-preview canvas { position:absolute;inset:0;width:100%;height:100%; }
+.mini-doodle-label {
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-30); text-align: center;
+}
+
+/* ── DISCORD CTA SECTION ─────────────────────── */
+.discord-cta { padding: 100px 0; position: relative; z-index: 1; }
+.discord-cta-card {
+  position: relative; overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(40px);
+  padding: 72px 80px;
+}
+.discord-cta-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 60% at 80% 50%, rgba(88,101,242,0.15) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 20% 50%, rgba(255,106,0,0.08) 0%, transparent 60%);
+}
+.discord-cta-card::before {
+  content: ''; position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(88,101,242,0.6), rgba(255,106,0,0.4), transparent);
+}
+.discord-cta-content { position: relative; z-index: 1; max-width: 700px; }
+.discord-tag {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 20px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: #7289da;
+  background: rgba(88,101,242,0.1);
+  border: 1px solid rgba(88,101,242,0.25);
+  border-radius: 100px;
+  margin-bottom: 28px;
+}
+.discord-headline {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 5.5vw, 72px); letter-spacing: 3px;
+  color: #fff; line-height: 1; margin-bottom: 20px;
+}
+.discord-sub {
+  font-size: 16px; color: var(--text-50);
+  line-height: 1.8; max-width: 560px; margin-bottom: 36px;
+}
+.discord-features {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 40px;
+}
+.discord-feat {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  font-size: 13px; font-weight: 600; color: var(--text-80);
+  transition: all 0.25s var(--ease);
+}
+.discord-feat:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.16);
+}
+.df-icon { font-size: 16px; }
+.btn-discord-big {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 16px 44px;
+  font-family: var(--font-ui); font-size: 14px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #fff; text-decoration: none;
+  background: linear-gradient(135deg, #5865f2, #7289da);
+  border: none; border-radius: var(--radius);
+  box-shadow: 0 6px 30px rgba(88,101,242,0.5);
+  transition: all 0.3s var(--ease);
+  margin-bottom: 24px;
+}
+.btn-discord-big:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 48px rgba(88,101,242,0.6);
+  background: linear-gradient(135deg, #4752c4, #5865f2);
+}
+.discord-quote {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px;
+  color: var(--text-30); font-style: italic;
+  border-left: 2px solid rgba(255,106,0,0.4);
+  padding-left: 16px; margin-top: 8px;
+}
+
+/* ── ALL SUBPAGES — update branding ──────────── */
+.nav-logo-text .sub-name { color: #fff !important; font-style: italic; }
+
+@media (max-width: 900px) {
+  .showcase-inner { grid-template-columns: 1fr; gap: 40px; }
+  .discord-cta-card { padding: 48px 28px; }
+  .discord-features { grid-template-columns: 1fr; }
+  .discord-headline { font-size: clamp(32px, 7vw, 52px); }
+}
+
+/* ── LOADER — black/white STRAW HAT ───────────── */
+#st-loader { background: #000 !important; }
+.loader-icon {
+  background: #fff !important;
+  color: #000 !important;
+  box-shadow: 0 0 40px rgba(255,255,255,0.2) !important;
+  animation: loaderPulseWH 1.4s ease-in-out infinite !important;
+}
+@keyframes loaderPulseWH {
+  0%,100% { box-shadow: 0 0 20px rgba(255,255,255,0.15); transform: scale(1); }
+  50% { box-shadow: 0 0 50px rgba(255,255,255,0.35); transform: scale(1.06); }
+}
+.loader-title { color: #fff !important; }
+.loader-title span { color: #fff !important; font-style: italic; }
+.loader-fill {
+  background: linear-gradient(90deg, #fff, rgba(255,255,255,0.6), #fff) !important;
+}
+.loader-tag { color: rgba(255,255,255,0.25) !important; }
+
+/* ── STORE PAGE — fix game card imgs use landscape ── */
+.game-img img { object-position: center center; }
