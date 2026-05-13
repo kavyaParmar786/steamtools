@@ -166,35 +166,31 @@
 
 <div class="section-divider"></div>
 
-<!-- ANIMATED DOODLES SHOWCASE SECTION -->
-<section class="doodle-showcase">
-  <div class="container">
-    <div class="showcase-inner reveal">
-      <div class="showcase-left">
-        <span class="section-tag">// LIVE SYSTEM VISUALIZERS</span>
-        <h2 class="section-title" style="margin-bottom:16px">SYSTEM <span class="text-gradient">PULSE</span></h2>
-        <p style="color:var(--text-50);font-size:15px;line-height:1.8;max-width:380px;margin-bottom:32px">
-          Real-time animated visualizers powered by our vault metrics engine. Each animation reflects live system activity — particle flux, data throughput, and vault access patterns.
-        </p>
-        <a href="pages/store.html" class="btn-hero">Browse The Vault</a>
-      </div>
-      <div class="showcase-right">
-        <div class="mini-doodle-grid">
-          <div class="mini-doodle-card">
-            <div class="mini-doodle-preview" id="doodle-1"></div>
-            <span class="mini-doodle-label">ENERGY FLUX</span>
-          </div>
-          <div class="mini-doodle-card">
-            <div class="mini-doodle-preview" id="doodle-2"></div>
-            <span class="mini-doodle-label">NEON PULSE</span>
-          </div>
-          <div class="mini-doodle-card">
-            <div class="mini-doodle-preview" id="doodle-3"></div>
-            <span class="mini-doodle-label">VOID SWIRL</span>
-          </div>
-        </div>
-      </div>
+<!-- ANIMATED DOODLE HERO SECTION -->
+<section class="doodle-empire" id="doodle-empire">
+  <!-- Orbiting SVG doodles (positioned absolute, JS will animate) -->
+  <div class="empire-doodles" aria-hidden="true" id="empire-doodles"></div>
+
+  <!-- Canvas for particle/line bg -->
+  <canvas id="empire-canvas"></canvas>
+
+  <div class="container empire-content">
+    <div class="empire-tag-wrap">
+      <span class="empire-tag">SYSTEM BREACH</span>
     </div>
+
+    <!-- Big outlined text like image 4 -->
+    <div class="empire-headline">
+      <span class="empire-line outline">WELCOME TO THE</span>
+      <span class="empire-line filled">UNDERGROUND<br class="emp-br"> EMPIRE</span>
+    </div>
+
+    <!-- Dashed orbit ring (drawn with CSS) -->
+    <div class="empire-orbit-ring ring-outer"></div>
+    <div class="empire-orbit-ring ring-inner"></div>
+
+    <p class="empire-sub">The most advanced, community-powered vault. Verified, updated, free — always.</p>
+    <a href="pages/store.html" class="btn-empire">Enter The Vault →</a>
   </div>
 </section>
 

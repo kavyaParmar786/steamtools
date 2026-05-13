@@ -184,19 +184,111 @@ function initNav() {
   });
 }
 
-/* ── LOADER ────────────────────────────── */
+/* ── LOADER — CINEMATIC ────────────────── */
 function initLoader() {
   const loader = document.createElement('div');
   loader.id = 'st-loader';
   loader.innerHTML = `
-    <div class="loader-logo-wrap">
-      <div class="loader-icon">ST</div>
-      <span class="loader-title">STRAW<span>HAT</span></span>
-    </div>
-    <div class="loader-bar"><div class="loader-fill"></div></div>
-    <span class="loader-tag">Entering the vault...</span>`;
+    <canvas id="loader-canvas"></canvas>
+    <div class="loader-core">
+      <div class="loader-ring-wrap">
+        <div class="loader-ring r1"></div>
+        <div class="loader-ring r2"></div>
+        <div class="loader-ring r3"></div>
+        <div class="loader-icon">ST</div>
+      </div>
+      <div class="loader-logo-wrap">
+        <span class="loader-title">STRAW<span>HAT</span></span>
+      </div>
+      <div class="loader-progress">
+        <div class="loader-bar"><div class="loader-fill"></div></div>
+        <div class="loader-stats">
+          <span class="loader-tag">Entering the Vault</span>
+          <span class="sep"></span>
+          <span id="loader-pct">0%</span>
+        </div>
+      </div>
+    </div>`;
   document.body.appendChild(loader);
-  setTimeout(() => { loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 700); }, 1400);
+
+  /* Particle canvas */
+  const canvas = loader.querySelector('#loader-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [], animId;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* Spawn particles */
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * 1920,
+      y: Math.random() * 1080,
+      vx: (Math.random() - .5) * 0.5,
+      vy: (Math.random() - .5) * 0.5,
+      r: Math.random() * 1.4 + 0.3,
+      hue: Math.random() > 0.6 ? 20 : Math.random() > 0.5 ? 345 : 195,
+      alpha: Math.random() * 0.5 + 0.1,
+      pulse: Math.random() * Math.PI * 2
+    });
+  }
+
+  function drawLoader(ts) {
+    ctx.clearRect(0, 0, W, H);
+    const t = ts * 0.001;
+
+    /* Draw connections */
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(255,106,0,${(1 - d/120) * 0.07})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    /* Draw + move particles */
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.pulse += 0.02;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      const a = p.alpha * (0.7 + 0.3 * Math.sin(p.pulse));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${a})`;
+      ctx.fill();
+    });
+
+    animId = requestAnimationFrame(drawLoader);
+  }
+  animId = requestAnimationFrame(drawLoader);
+
+  /* Percentage counter */
+  const pctEl = loader.querySelector('#loader-pct');
+  let pct = 0;
+  const pctTimer = setInterval(() => {
+    pct = Math.min(100, pct + Math.floor(Math.random() * 18) + 6);
+    if (pctEl) pctEl.textContent = pct + '%';
+    if (pct >= 100) clearInterval(pctTimer);
+  }, 160);
+
+  /* Dismiss */
+  setTimeout(() => {
+    cancelAnimationFrame(animId);
+    loader.classList.add('fade-out');
+    setTimeout(() => loader.remove(), 800);
+  }, 1800);
 }
 
 /* ── DOODLE CANVAS (background lines) ─── */
@@ -374,12 +466,132 @@ function showToast(msg, icon='✓') {
 }
 
 /* ── INIT ──────────────────────────────── */
+
+
+/* ── DOODLE EMPIRE — animated doodles + canvas ── */
+function initDoodleEmpire() {
+  const section = document.getElementById('doodle-empire');
+  const doodleWrap = document.getElementById('empire-doodles');
+  const canvas = document.getElementById('empire-canvas');
+  if (!section || !doodleWrap || !canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  let W, H;
+
+  function resize() {
+    W = canvas.width  = section.offsetWidth;
+    H = canvas.height = section.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ── Background canvas: floating lines + circles ── */
+  const lines  = Array.from({length: 18}, () => ({
+    x: Math.random() * 1600, y: Math.random() * 500,
+    vx: (Math.random() - .5) * .55, vy: (Math.random() - .5) * .55,
+    len: 50 + Math.random() * 120, angle: Math.random() * Math.PI * 2,
+    av: (Math.random() - .5) * .013,
+    col: Math.random() > .5 ? 'rgba(255,106,0,' : 'rgba(255,61,110,',
+    alpha: .06 + Math.random() * .1,
+  }));
+  const circles = Array.from({length: 11}, () => ({
+    x: Math.random() * 1600, y: Math.random() * 500,
+    r: 22 + Math.random() * 70,
+    vx: (Math.random() - .5) * .4, vy: (Math.random() - .5) * .4,
+    phase: Math.random() * Math.PI * 2,
+    col: Math.random() > .6 ? 'rgba(255,106,0,' : 'rgba(0,212,255,',
+  }));
+
+  let t = 0;
+  function drawBg() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.012;
+
+    lines.forEach(l => {
+      l.x += l.vx; l.y += l.vy; l.angle += l.av;
+      if (l.x < -150) l.x = W + 50; if (l.x > W + 150) l.x = -50;
+      if (l.y < -80)  l.y = H + 40; if (l.y > H + 80)  l.y = -40;
+      const a = l.alpha * (0.6 + 0.4 * Math.sin(t + l.phase || 0));
+      const x2 = l.x + Math.cos(l.angle) * l.len;
+      const y2 = l.y + Math.sin(l.angle) * l.len;
+      ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(x2, y2);
+      ctx.strokeStyle = l.col + a + ')'; ctx.lineWidth = 1; ctx.stroke();
+    });
+
+    circles.forEach(c => {
+      c.x += c.vx; c.y += c.vy; c.phase += 0.018;
+      if (c.x < -100) c.x = W + 60; if (c.x > W + 100) c.x = -60;
+      if (c.y < -100) c.y = H + 60; if (c.y > H + 100) c.y = -60;
+      const a = 0.04 + 0.04 * Math.sin(c.phase);
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.strokeStyle = c.col + a + ')'; ctx.lineWidth = 1; ctx.stroke();
+    });
+
+    requestAnimationFrame(drawBg);
+  }
+  drawBg();
+
+  /* ── SVG Doodles orbiting around the text ── */
+  const DOODLES = [
+    // [svg markup, orbit radius, orbit speed, start angle, size]
+    ['<circle cx="22" cy="22" r="20" stroke="#ff6a00" stroke-width="1.5" stroke-dasharray="6 4" fill="none"/><line x1="22" y1="2" x2="22" y2="42" stroke="#ff6a00" stroke-width="0.8"/><line x1="2" y1="22" x2="42" y2="22" stroke="#ff6a00" stroke-width="0.8"/>', 44, 44, 0.009, 0],
+    ['<rect x="4" y="4" width="40" height="40" rx="4" stroke="#ff3d6e" stroke-width="1.5" stroke-dasharray="8 4" fill="none"/><rect x="12" y="12" width="24" height="24" rx="2" stroke="#ff3d6e" stroke-width="1" fill="none"/>', 48, 48, 1.2, 0.004],
+    ['<polygon points="24,4 44,40 4,40" stroke="#fff" stroke-width="1.5" stroke-dasharray="5 3" fill="none"/><circle cx="24" cy="30" r="6" stroke="#ff6a00" stroke-width="1.2" fill="none"/>', 48, 48, 2.4, -0.007],
+    ['<path d="M24 4 L44 24 L24 44 L4 24 Z" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none"/><circle cx="24" cy="24" r="8" stroke="#00d4ff" stroke-width="1" fill="none"/>', 48, 48, 3.7, 0.006],
+    ['<circle cx="22" cy="22" r="20" stroke="#ff6a00" stroke-width="1" stroke-dasharray="3 3" fill="none"/><circle cx="22" cy="22" r="12" stroke="#ff3d6e" stroke-width="1.2" fill="none"/><circle cx="22" cy="22" r="4" stroke="#fff" stroke-width="1" fill="none"/>', 44, 44, 0.8, -0.005],
+    ['<rect x="2" y="2" width="36" height="36" rx="18" stroke="#ff3d6e" stroke-width="1.2" stroke-dasharray="4 3" fill="none"/><rect x="10" y="10" width="20" height="20" rx="10" stroke="#ff6a00" stroke-width="1.5" fill="none"/>', 40, 40, 5.2, 0.008],
+    ['<path d="M4 20 Q20 4 36 20 Q20 36 4 20Z" stroke="#fff" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/><path d="M10 20 Q20 10 30 20 Q20 30 10 20Z" stroke="#ff6a00" stroke-width="1" fill="none"/>', 40, 40, 4.1, -0.006],
+    ['<polygon points="20,2 38,16 32,36 8,36 2,16" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="6 3" fill="none"/><circle cx="20" cy="22" r="6" stroke="#00d4ff" stroke-width="1.2" fill="none"/>', 40, 40, 2.9, 0.005],
+  ];
+
+  // Place doodles spread around the section
+  const cx = section.offsetWidth / 2;
+  const cy = section.offsetHeight / 2;
+  const spreadX = section.offsetWidth * 0.38;
+  const spreadY = section.offsetHeight * 0.38;
+
+  const empEls = DOODLES.map((d, i) => {
+    const div = document.createElement('div');
+    div.className = 'emp-doodle';
+    const [markup, w, h, startAngle, speed] = d;
+    div.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none">${markup}</svg>`;
+
+    // Each doodle gets an orbit around the text center
+    const orbitRx = spreadX * (0.7 + Math.random() * 0.6);
+    const orbitRy = spreadY * (0.5 + Math.random() * 0.5);
+    div._orbitRx = orbitRx;
+    div._orbitRy = orbitRy;
+    div._angle = startAngle;
+    div._speed = speed !== 0 ? speed : (Math.random() - .5) * .008;
+    div._selfRot = 0;
+    div._selfRotSpeed = (Math.random() - .5) * 0.015;
+    doodleWrap.appendChild(div);
+    return div;
+  });
+
+  function animateDoodles() {
+    const sw = section.offsetWidth / 2;
+    const sh = section.offsetHeight / 2;
+
+    empEls.forEach(el => {
+      el._angle += el._speed;
+      el._selfRot += el._selfRotSpeed;
+      const x = sw + Math.cos(el._angle) * el._orbitRx - 24;
+      const y = sh + Math.sin(el._angle) * el._orbitRy - 24;
+      el.style.transform = `translate(${x}px, ${y}px) rotate(${el._selfRot}rad)`;
+    });
+    requestAnimationFrame(animateDoodles);
+  }
+  animateDoodles();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initLoader();
   initPageTransitions();
   initReveal();
   initNav();
   if (document.getElementById('doodle-canvas')) initDoodleCanvas();
+  initDoodleEmpire();
   if (document.getElementById('doodle-1'))     setTimeout(initDoodlePreviews, 80);
   initCounters();
   // Ensure bg-overlay exists
