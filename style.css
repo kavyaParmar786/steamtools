@@ -25,6 +25,26 @@
   --radius-lg:     20px;
 }
 
+/* ── PERFORMANCE & ACCESSIBILITY ── */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  .bg-video, #webgl-bg { display: none !important; }
+  body { background: var(--bg) !important; }
+}
+
+@media (max-width: 768px) {
+  * { backdrop-filter: none !important; } /* Disable blurs on mobile for FPS */
+  #webgl-bg { opacity: 0.5; } /* Fade out background on mobile */
+}
+
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; }
 
@@ -61,14 +81,17 @@ body {
 }
 
 /* ── BG VIDEO ────────────────────────────────── */
-#background-video, .bg-video {
-  position: fixed; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover; z-index: -2;
-  /* LIGHTER: was 0.32, now 0.55 */
-  filter: brightness(0.55) saturate(1.1);
+#background-video, .bg-video, #webgl-bg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  object-fit: cover;
+  z-index: -2;
   pointer-events: none;
+  filter: brightness(0.6) contrast(1.1);
+  will-change: transform; /* Hint to browser */
 }
+#webgl-bg { z-index: -1; filter: none; }
 .bg-overlay {
   position: fixed; inset: 0; z-index: -1;
   background:
@@ -472,22 +495,29 @@ footer { position:relative; z-index:1; padding:64px 0 32px; border-top:1px solid
 .game-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:16px; }
 
 .game-card {
-  position:relative;
-  background:#0d1117;
-  border:1px solid rgba(255,255,255,0.12);
-  border-radius:16px; overflow:hidden;
-  transition:transform 0.35s var(--ease), box-shadow 0.35s, border-color 0.3s;
-  aspect-ratio:2/3; display:flex; flex-direction:column; justify-content:flex-end;
-  /* Fix subpixel/GPU rendering glitch at bottom edge */
-  will-change:transform;
-  transform:translateZ(0);
-  isolation:isolate;
-  -webkit-mask-image:-webkit-radial-gradient(white,black);
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.4s var(--ease), background 0.4s var(--ease), border-color 0.4s var(--ease);
+  cursor: pointer;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0); /* Force GPU */
 }
-.game-card:hover { transform:translateY(-10px) scale(1.02) translateZ(0); box-shadow:0 24px 60px rgba(0,0,0,0.8),0 0 40px rgba(255,106,0,0.15); border-color:rgba(255,106,0,0.35); }
-.game-img { position:absolute; inset:0; overflow:hidden; background:#0d1117; }
-.game-img img { width:100%; height:100%; object-fit:cover; object-position:center top; display:block; transition:transform 0.5s var(--ease); }
-.game-card:hover .game-img img { transform:scale(1.07); }
+.game-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+.game-card img {
+  width: 100%; height: 210px;
+  object-fit: cover;
+  transition: transform 0.6s var(--ease);
+  will-change: transform;
+}
 
 /* Bottom gradient so text is always readable */
 .game-card::after {

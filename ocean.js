@@ -134,12 +134,34 @@
   const uTime = gl.getUniformLocation(prog, 'uTime');
   const uMouse = gl.getUniformLocation(prog, 'uMouse');
 
+  let isVisible = true;
+  const observer = new IntersectionObserver((entries) => {
+    isVisible = entries[0].isIntersecting;
+  }, { threshold: 0.1 });
+  observer.observe(canvas);
+
+  let lastFrameTime = 0;
+  const targetFPS = 60;
+  const frameInterval = 1000 / targetFPS;
+
   function frame(ts) {
+    if (!isVisible) {
+      requestAnimationFrame(frame);
+      return;
+    }
+
+    const elapsed = ts - lastFrameTime;
+    if (elapsed < frameInterval) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    lastFrameTime = ts - (elapsed % frameInterval);
+
     const T = ts * 0.001;
     mouse.x += (mouseTarget.x - mouse.x) * 0.05;
     mouse.y += (mouseTarget.y - mouse.y) * 0.05;
 
-    gl.clearColor(0,0,0,1);
+    gl.clearColor(0,0,0,0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform2f(uRes, W, H);
     gl.uniform1f(uTime, T);
