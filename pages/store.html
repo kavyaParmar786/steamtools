@@ -3,20 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Store | STEAMTOOLS</title>
+  <title>Store — STEAMTOOLS</title>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../modal.css">
   <link rel="stylesheet" href="../extras.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<video autoplay muted loop playsinline class="bg-video">
-  <source src="https://steamtools.taupe.vercel.app/bg.mp4" type="video/mp4">
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<video class="bg-video" autoplay loop muted playsinline>
+  <source src="../background.mp4" type="video/mp4">
 </video>
-<canvas id="webgl-bg"></canvas>
+<div class="bg-overlay"></div>
 
 <div class="di-wrapper">
-  <nav id="main-nav">
+  <nav>
     <a href="../index.html" class="nav-logo">
       <div class="nav-logo-icon">ST</div>
       <span class="nav-logo-text">STEAM<span>TOOLS</span></span>
@@ -40,88 +44,102 @@
 <div class="subpage-wrap">
   <div class="container">
     <div class="page-hero reveal">
-      <span class="page-hero-tag">// THE COLLECTION</span>
-      <h1 class="section-title">THE VAULT <span class="text-gradient">STORE</span></h1>
-      <p class="hero-sub">Access the largest collection of verified Steam manifests. Powered by GameGen API.</p>
+      <span class="page-hero-tag">// THE VAULT</span>
+      <h1>GAME <span class="text-gradient">STORE</span></h1>
+      <p>Browse our full library of verified, unlocked titles. Every game — tested, tagged, and ready.</p>
     </div>
 
+    <!-- Search + Filters -->
     <div class="store-controls reveal">
-      <div class="search-container">
-        <input type="text" id="store-search" class="premium-search" placeholder="Search the archive...">
-        <span class="search-icon">🔍</span>
+      <div class="search-container" style="position:relative;max-width:360px;flex:1">
+        <span class="search-icon-left">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input type="text" id="store-search" class="premium-search" placeholder="Search games...">
+        <span class="search-kbd">⌘K</span>
       </div>
-      <div class="filter-strip">
-        <button class="filter-btn active" data-filter="all">All Games</button>
+      <div class="filter-strip" id="filter-strip">
+        <button class="filter-btn active" data-filter="all">All</button>
         <button class="filter-btn" data-filter="aaa">AAA</button>
         <button class="filter-btn" data-filter="indie">Indie</button>
         <button class="filter-btn" data-filter="survival">Survival</button>
       </div>
     </div>
 
-    <div class="game-grid" id="store-grid"></div>
-
-    <div class="load-more-wrap reveal" style="text-align:center;margin:80px 0">
-      <div class="api-status" id="api-status">
-        <span class="tag-dot"></span>
-        <span>GameGen API · Connected · 45 Titles Loaded</span>
+    <!-- Featured -->
+    <div class="featured-banner reveal">
+      <div class="featured-img">
+        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900_2x.jpg" alt="Elden Ring" style="object-position:center top">
+      </div>
+      <div class="featured-overlay">
+        <span class="game-status-badge">✦ FEATURED</span>
+        <h2>ELDEN RING</h2>
+        <p>Shadow of the Erdtree DLC • Updated May 2026</p>
+        <button class="btn-editorial" onclick="openGameModal('1245620')">Get Game</button>
       </div>
     </div>
+
+    <!-- Game Grid -->
+    <div class="game-grid" id="game-grid"></div>
   </div>
 </div>
 
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
+    </div>
+  </div>
+</footer>
+
 <script src="../shared.js"></script>
 <script>
-let currentFilter = 'all';
-let currentSearch = '';
-
-function renderStore() {
-  const grid = document.getElementById('store-grid');
-  if (!grid) return;
-
-  let data = currentFilter === 'all' ? CATALOG : CATALOG.filter(g => g.cat === currentFilter);
-  if (currentSearch) {
-    const query = currentSearch.toLowerCase();
-    data = data.filter(g => g.name.toLowerCase().includes(query) || g.tag.toLowerCase().includes(query));
-  }
-
-  grid.innerHTML = '';
-  data.forEach((game, i) => {
-    const card = document.createElement('div');
-    card.className = 'game-card reveal visible';
-    card.style.transitionDelay = `${i * 0.04}s`;
-    card.onclick = () => window.location.href = `details.html?id=${game.id}`;
-    card.innerHTML = `
-      <div class="game-img">
-        <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/library_600x900_2x.jpg" alt="${game.name}" loading="lazy"
-             onerror="this.src='https://placehold.co/300x450/0a0f1a/6b9ef8?text=${encodeURIComponent(game.name)}'">
-        <span class="game-status-badge">VERIFIED</span>
-        <div class="game-overlay"><button class="btn-get">View Details ↗</button></div>
-      </div>
-      <div class="game-info"><h3>${game.name}</h3><span class="game-tag">${game.tag}</span></div>`;
-    grid.appendChild(card);
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  renderStore();
+  const grid = document.getElementById('game-grid');
   const searchInput = document.getElementById('store-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', e => { 
-      currentSearch = e.target.value; 
-      renderStore(); 
-    });
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  let activeFilter = 'all';
+  let searchQuery = '';
+
+  function imgUrl(id) {
+    return `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/library_600x900_2x.jpg`;
   }
 
-  document.querySelectorAll('.filter-btn').forEach(btn => {
+  function render() {
+    const list = CATALOG.filter(g => {
+      const matchCat = activeFilter === 'all' || g.cat === activeFilter;
+      const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchCat && matchSearch;
+    });
+    grid.innerHTML = list.map(g => `
+      <div class="game-card reveal" onclick="openGameModal('${g.id}')">
+        <div class="game-img"><img src="${imgUrl(g.id)}" alt="${g.name}" loading="lazy" onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg'"></div>
+        <span class="game-status-badge">VERIFIED</span>
+        <div class="game-overlay"><button class="btn-get">Get Game</button></div>
+        <div class="game-info">
+          <h3>${g.name}</h3>
+          <span class="game-tag">${g.tag}</span>
+        </div>
+      </div>`).join('');
+    // trigger reveal
+    setTimeout(() => {
+      document.querySelectorAll('.game-card.reveal').forEach(el => el.classList.add('visible'));
+    }, 50);
+  }
+
+  filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      filterBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      renderStore();
+      activeFilter = btn.dataset.filter;
+      render();
     });
   });
+
+  searchInput.addEventListener('input', e => { searchQuery = e.target.value; render(); });
+  render();
 });
 </script>
 </body>
 </html>
-

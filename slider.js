@@ -1,168 +1,110 @@
 /**
- * STEAMTOOLS — Direction-Aware Slider Logic
- * Snappy, High-Performance Magnetic Editorial Slider
+ * STEAMTOOLS — HERO SLIDER
+ * Keeps the original slide structure, upgraded with animations
  */
 
-class HeroSlider {
-  constructor(containerId) {
-    this.container = document.getElementById(containerId);
-    if (!this.container) return;
+const SLIDER_GAMES = [
+  { id: '1245620', short: 'ELDEN RING',    tag: 'AAA · FROMSOFT',      btn: 'Enter The Erdtree' },
+  { id: '1091500', short: 'CYBERPUNK',     tag: 'AAA · SCI-FI RPG',    btn: 'Jack In'            },
+  { id: '553850',  short: 'HELLDIVERS',    tag: 'AAA · CO-OP ACTION',  btn: 'Deploy Now'         },
+  { id: '1086940', short: "BALDUR'S GATE", tag: 'AAA · FANTASY RPG',   btn: 'Begin Adventure'    },
+  { id: '1174180', short: 'RED DEAD',      tag: 'AAA · OPEN WORLD',    btn: 'Ride Out'           },
+];
 
-    this.currentIndex = 0;
-    this.isAnimating = false;
-    this.featured = CATALOG.slice(0, 10); 
-    this.autoPlayInterval = null;
+let sliderIndex = 0;
+let sliderTimer = null;
+let isAnimating = false;
 
-    // Magnetic variables
-    this.target = { x: 0, y: 0 };
-    this.current = { x: 0, y: 0 };
-    this.activeTitle = null; // Cache for performance
-    
-    this.init();
-  }
+function buildSlider() {
+  const container = document.getElementById('hero-slider');
+  const dotsWrap  = document.getElementById('slider-dots');
+  if (!container) return;
 
-  init() {
-    this.renderSlides();
-    this.setupEventListeners();
-    this.startAutoPlay();
-    this.tick(); 
-  }
+  container.innerHTML = SLIDER_GAMES.map((g, i) => `
+    <div class="slide ${i === 0 ? 'active' : ''}" data-index="${i}" data-id="${g.id}">
+      <div class="slide-bg-container">
+        <img
+          src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/library_600x900_2x.jpg"
+          alt="${g.short}"
+          onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg'"
+          loading="lazy">
+      </div>
+      <div class="slide-title-wrap">
+        <span class="slide-title-huge ${g.short.length > 12 ? 'long-title' : ''}">${g.short}</span>
+      </div>
+      <div class="slide-actions">
+        <a href="pages/store.html" class="btn-editorial" onclick="openGameModal('${g.id}');return false;">${g.btn}</a>
+      </div>
+    </div>`).join('');
 
-  renderSlides() {
-    this.container.innerHTML = this.featured.map((game, i) => {
-      const isLong = game.name.length > 15;
-      return `
-        <div class="slide" data-index="${i}">
-          <div class="slide-bg-container">
-            <img src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/library_hero.jpg" 
-                 onerror="this.src='${STEAMTOOLS_CONFIG.STEAM_IMG}/${game.id}/header.jpg'" alt="${game.name}">
-          </div>
-          <div class="slide-title-wrap">
-            <div class="slide-title-huge ${isLong ? 'long-title' : ''}">${game.name}</div>
-          </div>
-          <div class="slide-actions">
-            <a href="pages/details.html?id=${game.id}" class="btn-editorial">Access Vault</a>
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    this.slideEls = this.container.querySelectorAll('.slide');
-    this.showSlide(0);
-  }
-
-  setupEventListeners() {
-    this.container.addEventListener('click', (e) => {
-      if (this.isAnimating) return;
-      if (e.target.closest('button') || e.target.closest('a')) return;
-
-      const isRight = e.clientX > window.innerWidth / 2;
-      this.transition(isRight ? 1 : -1);
-      this.resetAutoPlay();
-    });
-
-    this.container.addEventListener('mousemove', (e) => {
-      if (!this.activeTitle || this.isAnimating) return;
-
-      const rect = this.activeTitle.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-
-      // Snappier target calculation (increased range)
-      this.target.x = (e.clientX - centerX) * 0.18;
-      this.target.y = (e.clientY - centerY) * 0.18;
-    });
-
-    this.container.addEventListener('mouseleave', () => {
-      this.target.x = 0;
-      this.target.y = 0;
+  if (dotsWrap) {
+    dotsWrap.innerHTML = SLIDER_GAMES.map((_, i) =>
+      `<div class="slider-dot ${i === 0 ? 'active' : ''}" data-dot="${i}"></div>`
+    ).join('');
+    dotsWrap.querySelectorAll('.slider-dot').forEach(dot => {
+      dot.addEventListener('click', () => goToSlide(+dot.dataset.dot));
     });
   }
 
-  tick() {
-    // Faster Lerp for snappier response (0.2 instead of 0.08)
-    this.current.x += (this.target.x - this.current.x) * 0.2;
-    this.current.y += (this.target.y - this.current.y) * 0.2;
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') nextSlide();
+    if (e.key === 'ArrowLeft')  prevSlide();
+  });
 
-    if (this.activeTitle && !this.isAnimating) {
-      this.activeTitle.style.transform = `translate3d(${this.current.x}px, ${this.current.y}px, 0)`;
-    }
+  // Touch / swipe
+  let touchStartX = 0;
+  container.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  container.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) dx < 0 ? nextSlide() : prevSlide();
+  });
 
-    requestAnimationFrame(() => this.tick());
-  }
-
-  startAutoPlay() {
-    if (this.autoPlayInterval) clearInterval(this.autoPlayInterval);
-    this.autoPlayInterval = setInterval(() => {
-      this.transition(1);
-    }, 5000);
-  }
-
-  resetAutoPlay() {
-    this.startAutoPlay();
-  }
-
-  showSlide(index) {
-    this.slideEls.forEach((slide, i) => {
-      slide.classList.toggle('active', i === index);
-      if (i === index) {
-        this.activeTitle = slide.querySelector('.slide-title-huge');
-      }
-    });
-    this.currentIndex = index;
-  }
-
-  transition(direction) {
-    if (this.isAnimating) return;
-    this.isAnimating = true;
-
-    const prevIndex = this.currentIndex;
-    this.currentIndex = (this.currentIndex + direction + this.featured.length) % this.featured.length;
-
-    const prevSlide = this.slideEls[prevIndex];
-    const nextSlide = this.slideEls[this.currentIndex];
-
-    // Prepare next slide cache
-    this.activeTitle = nextSlide.querySelector('.slide-title-huge');
-
-    // Reset classes
-    prevSlide.classList.remove('slide-enter-left', 'slide-enter-right', 'slide-exit-left', 'slide-exit-right');
-    nextSlide.classList.remove('slide-enter-left', 'slide-enter-right', 'slide-exit-left', 'slide-exit-right');
-
-    if (direction > 0) {
-      prevSlide.classList.add('slide-exit-left');
-      nextSlide.classList.add('active', 'slide-enter-right');
-    } else {
-      prevSlide.classList.add('slide-exit-right');
-      nextSlide.classList.add('active', 'slide-enter-left');
-    }
-
-    // Parallax
-    const prevTitle = prevSlide.querySelector('.slide-title-huge');
-    const prevImg = prevSlide.querySelector('.slide-bg-container');
-
-    if (direction > 0) {
-      if(prevTitle) prevTitle.style.transform = 'translateX(-30%)';
-      if(prevImg) prevImg.style.transform = 'translateX(-15%)';
-    } else {
-      if(prevTitle) prevTitle.style.transform = 'translateX(30%)';
-      if(prevImg) prevImg.style.transform = 'translateX(15%)';
-    }
-
-    setTimeout(() => {
-      prevSlide.classList.remove('active', 'slide-exit-left', 'slide-exit-right');
-      [prevTitle, prevImg].forEach(el => {
-        if(el) el.style.transform = '';
-      });
-      this.current.x = 0; this.current.y = 0;
-      this.target.x = 0; this.target.y = 0;
-      this.isAnimating = false;
-    }, 1000); 
-  }
+  startAutoPlay();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('hero-slider')) {
-    window.steamSlider = new HeroSlider('hero-slider');
-  }
-});
+function goToSlide(next, direction) {
+  if (isAnimating || next === sliderIndex) return;
+  isAnimating = true;
+
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.slider-dot');
+  const prev   = sliderIndex;
+  const dir    = direction || (next > prev ? 'right' : 'left');
+
+  const outAnim = dir === 'right' ? 'slide-exit-left'  : 'slide-exit-right';
+  const inAnim  = dir === 'right' ? 'slide-enter-right': 'slide-enter-left';
+
+  slides[prev].classList.add(outAnim);
+  slides[next].classList.add(inAnim);
+  slides[next].classList.add('active');
+
+  dots.forEach(d => d.classList.remove('active'));
+  if (dots[next]) dots[next].classList.add('active');
+
+  setTimeout(() => {
+    slides[prev].classList.remove('active', outAnim);
+    slides[next].classList.remove(inAnim);
+    sliderIndex = next;
+    isAnimating = false;
+  }, 900);
+}
+
+function nextSlide() {
+  goToSlide((sliderIndex + 1) % SLIDER_GAMES.length, 'right');
+  resetAutoPlay();
+}
+function prevSlide() {
+  goToSlide((sliderIndex - 1 + SLIDER_GAMES.length) % SLIDER_GAMES.length, 'left');
+  resetAutoPlay();
+}
+
+function startAutoPlay() {
+  sliderTimer = setInterval(nextSlide, 5000);
+}
+function resetAutoPlay() {
+  clearInterval(sliderTimer);
+  startAutoPlay();
+}
+
+document.addEventListener('DOMContentLoaded', buildSlider);

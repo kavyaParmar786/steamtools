@@ -3,21 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fixes & Patches | STEAMTOOLS</title>
-  <meta name="description" content="Performance patches, optimization guides, and community fixes for common game issues.">
+  <title>Fixes — STEAMTOOLS</title>
   <link rel="stylesheet" href="../style.css">
-  <link rel="stylesheet" href="../modal.css">
   <link rel="stylesheet" href="../extras.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<video autoplay muted loop playsinline class="bg-video">
-  <source src="https://steamtools.taupe.vercel.app/bg.mp4" type="video/mp4">
-</video>
-<canvas id="webgl-bg"></canvas>
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+<video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
+<div class="bg-overlay"></div>
 
 <div class="di-wrapper">
-  <nav id="main-nav">
+  <nav>
     <a href="../index.html" class="nav-logo">
       <div class="nav-logo-icon">ST</div>
       <span class="nav-logo-text">STEAM<span>TOOLS</span></span>
@@ -41,22 +40,24 @@
 <div class="subpage-wrap">
   <div class="container">
     <div class="page-hero reveal">
-      <span class="page-hero-tag">// COMMUNITY PATCHES</span>
-      <h1>TECHNICAL <span class="text-gradient">FIXES</span></h1>
-      <p>Performance patches, optimization guides, and community fixes for common game issues.</p>
+      <span class="page-hero-tag">// PATCH NOTES</span>
+      <h1>GAME <span class="text-gradient">FIXES</span></h1>
+      <p>Community-sourced patches, crash fixes, and performance boosts for your library.</p>
     </div>
 
-    <!-- Search -->
-    <div class="store-controls reveal">
-      <div class="search-container" style="margin: 0;">
+    <div class="store-controls reveal" style="flex-direction:column;align-items:flex-start;gap:14px">
+      <div style="position:relative;width:100%;max-width:480px">
+        <span class="search-icon-left" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text-30);display:flex">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
         <input type="text" id="fix-search" class="premium-search" placeholder="Search fixes...">
-        <span class="search-icon">🔍</span>
+        <span class="search-kbd">⌘K</span>
       </div>
-      <div class="filter-strip">
-        <button class="filter-btn active" data-cat="all">All</button>
-        <button class="filter-btn" data-cat="performance">Performance</button>
-        <button class="filter-btn" data-cat="crash">Crash Fix</button>
-        <button class="filter-btn" data-cat="audio">Audio</button>
+      <div class="filter-strip" id="fix-filter-strip">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="performance">Performance</button>
+        <button class="filter-btn" data-filter="crash">Crash Fix</button>
+        <button class="filter-btn" data-filter="audio">Audio</button>
       </div>
     </div>
 
@@ -64,69 +65,69 @@
   </div>
 </div>
 
-</div>
+<footer>
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 STEAMTOOLS. For educational purposes only.</p>
+      <p>All trademarks belong to their respective owners.</p>
+    </div>
+  </div>
+</footer>
 
 <script src="../shared.js"></script>
 <script>
-let currentCat = 'all';
-let searchTerm = '';
-
-function renderFixes() {
-  const grid = document.getElementById('fixes-grid');
-  if (!grid) return;
-
-  let data = currentCat === 'all' ? fixes : fixes.filter(f => f.cat === currentCat);
-  if (searchTerm) {
-    data = data.filter(f => f.title.toLowerCase().includes(searchTerm) || f.game.toLowerCase().includes(searchTerm));
-  }
-  
-  grid.innerHTML = data.map((f, i) => `
-    <div class="fix-card reveal visible" style="transition-delay:${i * 0.05}s">
-      <div class="fix-header">
-        <h3>${f.title}</h3>
-        ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <span class="fix-game-tag">${f.game}</span>
-        <span class="fix-version-tag">${f.version}</span>
-      </div>
-      <p>${f.desc}</p>
-      <button class="btn-apply" onclick="applyFix(this)">Apply Fix</button>
-    </div>
-  `).join('');
-}
-
-function applyFix(btn) {
-  btn.disabled = true;
-  btn.textContent = 'Applying...';
-  btn.classList.add('applying');
-  setTimeout(() => {
-    btn.textContent = '✓ Applied';
-    btn.classList.remove('applying');
-    btn.classList.add('applied');
-  }, 1500);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  renderFixes();
-  const searchInput = document.getElementById('fix-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', e => {
-      searchTerm = e.target.value.toLowerCase();
-      renderFixes();
+  const grid = document.getElementById('fixes-grid');
+  const searchEl = document.getElementById('fix-search');
+  const filterBtns = document.querySelectorAll('#fix-filter-strip .filter-btn');
+  let activeFilter = 'all', query = '';
+  const applied = new Set(JSON.parse(localStorage.getItem('st_applied') || '[]'));
+
+  function render() {
+    const list = fixes.filter(f => {
+      const matchCat = activeFilter === 'all' || f.cat === activeFilter;
+      const matchQ = !query || f.title.toLowerCase().includes(query) || f.game.toLowerCase().includes(query);
+      return matchCat && matchQ;
     });
+    grid.innerHTML = list.map((f, i) => `
+      <div class="fix-card reveal" style="transition-delay:${i * 0.04}s">
+        <div class="fix-header">
+          <h3>${f.title}</h3>
+          ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
+        </div>
+        <p>${f.desc}</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+          <span class="fix-game-tag">${f.game}</span>
+          <span class="fix-version-tag">${f.version}</span>
+        </div>
+        <button class="btn-apply ${applied.has(f.title) ? 'applied' : ''}" data-title="${f.title}">
+          ${applied.has(f.title) ? '✓ Applied' : 'Apply Fix'}
+        </button>
+      </div>`).join('');
+
+    document.querySelectorAll('.btn-apply:not(.applied)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.title;
+        applied.add(t);
+        localStorage.setItem('st_applied', JSON.stringify([...applied]));
+        btn.classList.add('applied');
+        btn.textContent = '✓ Applied';
+      });
+    });
+    setTimeout(() => { document.querySelectorAll('.fix-card.reveal').forEach(el => el.classList.add('visible')); }, 30);
   }
-  
-  document.querySelectorAll('.filter-btn').forEach(btn => {
+
+  filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      filterBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentCat = btn.dataset.cat;
-      renderFixes();
+      activeFilter = btn.dataset.filter;
+      render();
     });
   });
+  searchEl.addEventListener('input', e => { query = e.target.value.toLowerCase(); render(); });
+  render();
 });
 </script>
 </body>
 </html>
-

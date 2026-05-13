@@ -3,22 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Latest Drops | STEAMTOOLS</title>
+  <title>Drops — STEAMTOOLS</title>
   <link rel="stylesheet" href="../style.css">
-  <link rel="stylesheet" href="../modal.css">
   <link rel="stylesheet" href="../extras.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<video autoplay muted loop playsinline class="bg-video">
-  <source src="https://steamtools.taupe.vercel.app/bg.mp4" type="video/mp4">
-</video>
-<canvas id="webgl-bg"></canvas>
 <div class="cursor-dot"></div>
 <div class="cursor-ring"></div>
+<video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
+<div class="bg-overlay"></div>
 
 <div class="di-wrapper">
-  <nav id="main-nav">
+  <nav>
     <a href="../index.html" class="nav-logo">
       <div class="nav-logo-icon">ST</div>
       <span class="nav-logo-text">STEAM<span>TOOLS</span></span>
@@ -42,12 +40,20 @@
 <div class="subpage-wrap">
   <div class="container">
     <div class="page-hero reveal">
-      <span class="page-hero-tag">// REAL-TIME FEED</span>
+      <span class="page-hero-tag">// FRESH OUT THE VAULT</span>
       <h1>LATEST <span class="text-gradient">DROPS</span></h1>
-      <p>Live feed of the newest additions to the vault. Manifests generated via GameGen API.</p>
+      <p>The freshest additions to the vault — sorted by drop date, always up to date.</p>
     </div>
 
-    <div class="drops-feed" id="drops-feed"></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:36px" class="reveal">
+      <div class="api-status">
+        <span class="tag-dot"></span>
+        Vault Live
+      </div>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-30);letter-spacing:1px">Last updated: May 12, 2026</span>
+    </div>
+
+    <div class="drops-feed reveal" id="drops-feed"></div>
   </div>
 </div>
 
@@ -64,24 +70,28 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const feed = document.getElementById('drops-feed');
-  if (!feed) return;
-
-  drops.forEach((d, i) => {
-    const el = document.createElement('div');
-    el.className = `drop-item reveal visible`;
-    el.style.transitionDelay = `${i * 0.08}s`;
-    el.innerHTML = `
-      <img class="drop-thumb" src="${STEAMTOOLS_CONFIG.STEAM_IMG}/${d.id}/library_600x900_2x.jpg"
-           onerror="this.src='https://placehold.co/100x100/0a0f1a/6b9ef8?text=${d.id}'" alt="">
+  feed.innerHTML = drops.map((d, i) => `
+    <div class="drop-item" style="transition-delay:${i * 0.05}s;opacity:0;transform:translateY(16px);transition:all 0.5s var(--ease)" onclick="openGameModal('${d.id}')" title="${d.name}">
+      <img class="drop-thumb"
+        src="https://cdn.cloudflare.steamstatic.com/steam/apps/${d.id}/library_600x900_2x.jpg"
+        alt="${d.name}"
+        onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${d.id}/header.jpg'">
       <div class="drop-info">
         <h3>${d.name}</h3>
-        <span>${d.date} · ${d.tag}</span>
+        <span>${d.tag} &nbsp;·&nbsp; ${d.date}</span>
       </div>
-      <span class="drop-badge">${d.badge}</span>`;
-    feed.appendChild(el);
-  });
+      <span class="drop-badge">${d.badge}</span>
+    </div>`).join('');
+
+  setTimeout(() => {
+    feed.querySelectorAll('.drop-item').forEach((el, i) => {
+      setTimeout(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      }, i * 60);
+    });
+  }, 100);
 });
 </script>
 </body>
 </html>
-
