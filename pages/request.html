@@ -10,8 +10,6 @@
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<div class="cursor-dot"></div>
-<div class="cursor-ring"></div>
 <video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
 <div class="bg-overlay"></div>
 
@@ -48,9 +46,7 @@
     <div class="terminal-wrap reveal">
       <div class="terminal-card">
         <div class="terminal-bar">
-          <span class="t-dot r"></span>
-          <span class="t-dot y"></span>
-          <span class="t-dot g"></span>
+          <span class="t-dot r"></span><span class="t-dot y"></span><span class="t-dot g"></span>
           <span class="terminal-bar-title">vault-request — bash</span>
         </div>
         <div class="terminal-body">
@@ -59,12 +55,12 @@
           <div class="t-divider"></div>
 
           <div class="input-row">
-            <label>Game Title</label>
-            <input type="text" class="t-input" id="req-title" placeholder="e.g. Cyberpunk 2077">
+            <label>Game Title *</label>
+            <input type="text" class="t-input" id="req-title" placeholder="e.g. Spider-Man 2">
           </div>
           <div class="input-row">
             <label>Steam App ID (optional)</label>
-            <input type="text" class="t-input" id="req-appid" placeholder="e.g. 1091500">
+            <input type="text" class="t-input" id="req-appid" placeholder="e.g. 2119490">
           </div>
           <div class="input-row">
             <label>Priority</label>
@@ -76,7 +72,7 @@
           </div>
           <div class="input-row">
             <label>Notes</label>
-            <textarea class="t-input" id="req-notes" placeholder="Any specific version, DLC requirements, etc." style="resize:vertical;min-height:90px"></textarea>
+            <textarea class="t-input" id="req-notes" placeholder="Specific version, DLC, language requirements..." style="resize:vertical;min-height:80px"></textarea>
           </div>
 
           <div class="t-divider"></div>
@@ -85,35 +81,24 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               Submit Request
             </button>
-            <span id="req-status" style="font-family:var(--font-mono);font-size:11px;color:var(--text-30);letter-spacing:1px"></span>
+            <span id="req-status" style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)"></span>
           </div>
 
           <div id="req-success" style="display:none;margin-top:20px;padding:16px 18px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:12px">
-            <p style="font-family:var(--font-mono);font-size:12px;color:#4ade80;letter-spacing:1px">
-              <span style="opacity:0.6">steamtools@vault:~$ </span>Request queued successfully.<br>
-              <span style="opacity:0.6">ETA: </span>~72 hours<br>
-              <span style="opacity:0.6">Status: </span>PENDING REVIEW
+            <p style="font-family:var(--font-mono);font-size:12px;color:#4ade80;letter-spacing:0.5px;line-height:1.9">
+              <span style="opacity:0.55">steamtools@vault:~$ </span>Request queued successfully.<br>
+              <span style="opacity:0.55">ETA: </span>~72 hours<br>
+              <span style="opacity:0.55">Status: </span>PENDING REVIEW
             </p>
           </div>
         </div>
       </div>
 
-      <!-- Recent requests -->
+      <!-- MY REQUESTS (pulled from localStorage) -->
       <div style="margin-top:32px">
-        <p style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--accent);margin-bottom:16px;opacity:0.8">// RECENT REQUESTS</p>
-        <div style="display:flex;flex-direction:column;gap:8px" id="recent-requests">
-          <div class="drop-item" style="padding:14px 20px">
-            <div class="drop-info"><h3 style="font-size:14px">Marvel's Spider-Man 2</h3><span>Requested by @apex_crew · 2 days ago</span></div>
-            <span class="drop-badge" style="background:rgba(250,204,21,0.08);border-color:rgba(250,204,21,0.25);color:#facc15">IN PROGRESS</span>
-          </div>
-          <div class="drop-item" style="padding:14px 20px">
-            <div class="drop-info"><h3 style="font-size:14px">Alan Wake 2</h3><span>Requested by @darkmode_dev · 4 days ago</span></div>
-            <span class="drop-badge">COMPLETED</span>
-          </div>
-          <div class="drop-item" style="padding:14px 20px">
-            <div class="drop-info"><h3 style="font-size:14px">Lords of the Fallen</h3><span>Requested by @shadowbyte · 6 days ago</span></div>
-            <span class="drop-badge">COMPLETED</span>
-          </div>
+        <p style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--accent);margin-bottom:16px;opacity:0.8">// MY REQUESTS</p>
+        <div style="display:flex;flex-direction:column;gap:8px" id="my-requests-list">
+          <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No requests yet.</p>
         </div>
       </div>
     </div>
@@ -131,26 +116,69 @@
 
 <script src="../shared.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('submit-req');
-  const status = document.getElementById('req-status');
-  const success = document.getElementById('req-success');
+function loadRequests() { try { return JSON.parse(localStorage.getItem('st_requests')) || []; } catch { return []; } }
+function saveRequests(arr) { localStorage.setItem('st_requests', JSON.stringify(arr)); }
 
-  btn.addEventListener('click', () => {
-    const title = document.getElementById('req-title').value.trim();
-    if (!title) { status.textContent = '⚠ Game title required.'; status.style.color = 'var(--accent2)'; return; }
+function renderMyRequests() {
+  const list = loadRequests();
+  const el = document.getElementById('my-requests-list');
+  if (!list.length) {
+    el.innerHTML = `<p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No requests yet.</p>`;
+    return;
+  }
+  el.innerHTML = list.slice().reverse().map(r => `
+    <div class="drop-item" style="padding:14px 20px">
+      <div class="drop-info">
+        <h3 style="font-size:14px">${r.title}</h3>
+        <span>${r.priority.toUpperCase()} · ${r.date}</span>
+      </div>
+      <span class="drop-badge" style="${r.status === 'PENDING' ? '' : 'background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80'}">${r.status}</span>
+    </div>`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderMyRequests();
+
+  document.getElementById('submit-req').addEventListener('click', () => {
+    const title    = document.getElementById('req-title').value.trim();
+    const appid    = document.getElementById('req-appid').value.trim();
+    const priority = document.getElementById('req-priority').value;
+    const notes    = document.getElementById('req-notes').value.trim();
+    const status   = document.getElementById('req-status');
+
+    if (!title) {
+      status.textContent = '⚠ Game title is required.';
+      status.style.color = 'var(--accent2)';
+      return;
+    }
+
+    const btn = document.getElementById('submit-req');
     btn.disabled = true;
     status.textContent = 'Submitting...';
     status.style.color = 'var(--text-30)';
+
     setTimeout(() => {
+      const requests = loadRequests();
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }).toUpperCase();
+      requests.push({ title, appid, priority, notes, status: 'PENDING', date: dateStr });
+      saveRequests(requests);
+
       status.textContent = '';
-      success.style.display = 'block';
+      document.getElementById('req-success').style.display = 'block';
       btn.innerHTML = '✓ Submitted';
-      btn.style.background = 'rgba(74,222,128,0.12)';
+      btn.style.background = 'rgba(74,222,128,0.1)';
       btn.style.boxShadow = 'none';
       btn.style.color = '#4ade80';
       btn.style.border = '1px solid rgba(74,222,128,0.25)';
-    }, 1200);
+
+      // Clear fields
+      document.getElementById('req-title').value = '';
+      document.getElementById('req-appid').value = '';
+      document.getElementById('req-notes').value = '';
+
+      renderMyRequests();
+    }, 1100);
   });
 });
 </script>

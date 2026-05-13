@@ -10,8 +10,6 @@
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<div class="cursor-dot"></div>
-<div class="cursor-ring"></div>
 <video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
 <div class="bg-overlay"></div>
 
@@ -48,10 +46,11 @@
       <!-- Sidebar -->
       <div class="profile-sidebar reveal">
         <div class="avatar-ring">
-          <img src="https://api.dicebear.com/7.x/identicon/svg?seed=steamtools&backgroundColor=1a0a00" alt="Avatar">
+          <img id="avatar-img" src="" alt="Avatar">
         </div>
         <h2 id="profile-username">Vault Member</h2>
-        <div class="tier-badge" style="margin-bottom:20px">✦ VERIFIED USER</div>
+        <div class="tier-badge" id="tier-badge" style="margin-bottom:20px">✦ MEMBER</div>
+
         <div class="mini-stats">
           <div class="mini-stat">
             <span class="mini-stat-num" id="stat-games">0</span>
@@ -66,16 +65,21 @@
             <span class="mini-stat-label">Requests</span>
           </div>
           <div class="mini-stat">
-            <span class="mini-stat-num">2026</span>
+            <span class="mini-stat-num" id="stat-year">2026</span>
             <span class="mini-stat-label">Member Since</span>
           </div>
         </div>
+
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--glass-border)">
           <div class="api-status" style="justify-content:center;width:100%">
             <span class="tag-dot"></span>
             Vault Online
           </div>
         </div>
+
+        <button class="btn-apply" id="reset-profile-btn" style="margin-top:18px;width:100%;text-align:center;color:var(--accent2);border-color:rgba(255,61,110,0.25);background:rgba(255,61,110,0.06)">
+          Reset Profile
+        </button>
       </div>
 
       <!-- Main panels -->
@@ -84,7 +88,7 @@
         <div class="profile-panel reveal">
           <p class="panel-title">// EDIT PROFILE</p>
           <h3>Account Settings</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
             <div>
               <label class="terminal-label">Display Name</label>
               <input type="text" class="t-input" id="edit-name" placeholder="Your handle...">
@@ -94,29 +98,43 @@
               <input type="text" class="t-input" id="edit-discord" placeholder="user#0000">
             </div>
           </div>
-          <button class="btn-apply" id="save-profile" style="margin-top:6px">Save Changes</button>
-          <span id="save-status" style="margin-left:12px;font-family:var(--font-mono);font-size:11px;color:var(--text-30)"></span>
+          <div style="margin-bottom:14px">
+            <label class="terminal-label">Bio</label>
+            <textarea class="t-input" id="edit-bio" placeholder="Tell the vault about yourself..." style="min-height:70px;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button class="btn-apply" id="save-profile-btn">Save Changes</button>
+            <span id="save-status" style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)"></span>
+          </div>
         </div>
 
-        <!-- Activity -->
+        <!-- Activity / Download History -->
         <div class="profile-panel reveal reveal-delay-1">
           <p class="panel-title">// RECENT ACTIVITY</p>
           <h3>Download History</h3>
           <div id="history-list">
-            <div class="history-item"><span class="history-game">Elden Ring</span><span class="history-date">May 10, 2026</span></div>
-            <div class="history-item"><span class="history-game">Cyberpunk 2077</span><span class="history-date">May 07, 2026</span></div>
-            <div class="history-item"><span class="history-game">HELLDIVERS 2</span><span class="history-date">May 03, 2026</span></div>
-            <div class="history-item"><span class="history-game">Baldur's Gate 3</span><span class="history-date">Apr 28, 2026</span></div>
-            <div class="history-item"><span class="history-game">Hades</span><span class="history-date">Apr 22, 2026</span></div>
+            <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No downloads yet. Visit the <a href="store.html" style="color:var(--accent)">Store</a> to get started.</p>
+          </div>
+          <button class="btn-apply" id="clear-history-btn" style="margin-top:16px;color:var(--text-30);border-color:rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);font-size:10px">
+            Clear History
+          </button>
+        </div>
+
+        <!-- Applied Fixes -->
+        <div class="profile-panel reveal reveal-delay-2">
+          <p class="panel-title">// APPLIED FIXES</p>
+          <h3>Fix Tracker</h3>
+          <div id="fixes-list">
+            <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No fixes applied yet. Visit <a href="fixes.html" style="color:var(--accent)">Fixes</a> to browse patches.</p>
           </div>
         </div>
 
-        <!-- Wishlist -->
-        <div class="profile-panel reveal reveal-delay-2">
-          <p class="panel-title">// WISHLIST</p>
-          <h3>Games Bookmarked</h3>
-          <div id="wishlist-display" style="display:flex;flex-wrap:wrap;gap:10px;min-height:44px">
-            <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No items bookmarked yet. Visit the Store to add games.</span>
+        <!-- Requests Submitted -->
+        <div class="profile-panel reveal reveal-delay-3">
+          <p class="panel-title">// GAME REQUESTS</p>
+          <h3>Submitted Requests</h3>
+          <div id="requests-list">
+            <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No requests submitted yet. <a href="request.html" style="color:var(--accent)">Request a game</a>.</p>
           </div>
         </div>
       </div>
@@ -135,31 +153,141 @@
 
 <script src="../shared.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const profile = JSON.parse(localStorage.getItem('st_profile') || '{}');
-  const applied = JSON.parse(localStorage.getItem('st_applied') || '[]');
+/* ── PROFILE STORAGE KEYS ── */
+const KEYS = {
+  profile:  'st_profile',
+  applied:  'st_applied',
+  history:  'st_history',
+  requests: 'st_requests',
+};
 
-  if (profile.name) {
-    document.getElementById('profile-username').textContent = profile.name;
-    document.getElementById('edit-name').value = profile.name;
+function load(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+}
+function save(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+/* ── RENDER AVATAR ── */
+function renderAvatar(name) {
+  const seed = encodeURIComponent(name || 'vault');
+  document.getElementById('avatar-img').src =
+    `https://api.dicebear.com/7.x/identicon/svg?seed=${seed}&backgroundColor=1a0a00&radius=50`;
+}
+
+/* ── TIER LOGIC ── */
+function getTier(gamesCount) {
+  if (gamesCount >= 20) return '✦ ELITE MEMBER';
+  if (gamesCount >= 10) return '✦ VERIFIED USER';
+  if (gamesCount >= 5)  return '✦ ACTIVE MEMBER';
+  return '✦ MEMBER';
+}
+
+/* ── RENDER HISTORY ── */
+function renderHistory() {
+  const history = load(KEYS.history, []);
+  const el = document.getElementById('history-list');
+  if (!history.length) {
+    el.innerHTML = `<p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No downloads yet. Visit the <a href="store.html" style="color:var(--accent)">Store</a> to get started.</p>`;
+    return;
   }
+  el.innerHTML = history.slice().reverse().map(h => `
+    <div class="history-item">
+      <span class="history-game">${h.name}</span>
+      <span class="history-date">${h.date}</span>
+    </div>`).join('');
+}
+
+/* ── RENDER FIXES ── */
+function renderFixes() {
+  const applied = load(KEYS.applied, []);
+  const el = document.getElementById('fixes-list');
+  if (!applied.length) {
+    el.innerHTML = `<p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No fixes applied yet. Visit <a href="fixes.html" style="color:var(--accent)">Fixes</a> to browse patches.</p>`;
+    return;
+  }
+  el.innerHTML = applied.map(f => `
+    <div class="history-item">
+      <span class="history-game">${f}</span>
+      <span class="drop-badge" style="padding:3px 8px;font-size:8px">APPLIED</span>
+    </div>`).join('');
+}
+
+/* ── RENDER REQUESTS ── */
+function renderRequests() {
+  const requests = load(KEYS.requests, []);
+  const el = document.getElementById('requests-list');
+  if (!requests.length) {
+    el.innerHTML = `<p style="font-family:var(--font-mono);font-size:11px;color:var(--text-30)">No requests submitted yet. <a href="request.html" style="color:var(--accent)">Request a game</a>.</p>`;
+    return;
+  }
+  el.innerHTML = requests.map(r => `
+    <div class="history-item">
+      <span class="history-game">${r.title}</span>
+      <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-30)">${r.date}</span>
+    </div>`).join('');
+}
+
+/* ── MAIN INIT ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const profile  = load(KEYS.profile, {});
+  const applied  = load(KEYS.applied, []);
+  const history  = load(KEYS.history, []);
+  const requests = load(KEYS.requests, []);
+
+  /* Populate edit fields */
+  if (profile.name)    document.getElementById('edit-name').value    = profile.name;
   if (profile.discord) document.getElementById('edit-discord').value = profile.discord;
+  if (profile.bio)     document.getElementById('edit-bio').value     = profile.bio;
 
-  document.getElementById('stat-fixes').textContent = applied.length;
-  document.getElementById('stat-games').textContent = Math.floor(Math.random() * 8) + 3;
-  document.getElementById('stat-requests').textContent = Math.floor(Math.random() * 3) + 1;
+  /* Sidebar display */
+  const displayName = profile.name || 'Vault Member';
+  document.getElementById('profile-username').textContent = displayName;
+  document.getElementById('tier-badge').textContent = getTier(history.length);
+  document.getElementById('stat-games').textContent    = history.length;
+  document.getElementById('stat-fixes').textContent    = applied.length;
+  document.getElementById('stat-requests').textContent = requests.length;
+  document.getElementById('stat-year').textContent     = profile.year || new Date().getFullYear();
+  renderAvatar(displayName);
 
-  document.getElementById('save-profile').addEventListener('click', () => {
-    const name = document.getElementById('edit-name').value.trim();
+  /* Render dynamic lists */
+  renderHistory();
+  renderFixes();
+  renderRequests();
+
+  /* Save profile */
+  document.getElementById('save-profile-btn').addEventListener('click', () => {
+    const name    = document.getElementById('edit-name').value.trim();
     const discord = document.getElementById('edit-discord').value.trim();
-    if (name) {
-      localStorage.setItem('st_profile', JSON.stringify({ name, discord }));
-      document.getElementById('profile-username').textContent = name;
-      const s = document.getElementById('save-status');
-      s.textContent = '✓ Saved';
-      s.style.color = '#4ade80';
-      setTimeout(() => { s.textContent = ''; }, 2000);
-    }
+    const bio     = document.getElementById('edit-bio').value.trim();
+    const year    = profile.year || new Date().getFullYear();
+
+    save(KEYS.profile, { name, discord, bio, year });
+
+    const displayName = name || 'Vault Member';
+    document.getElementById('profile-username').textContent = displayName;
+    document.getElementById('tier-badge').textContent = getTier(history.length);
+    renderAvatar(displayName);
+
+    const s = document.getElementById('save-status');
+    s.textContent = '✓ Saved successfully';
+    s.style.color = '#4ade80';
+    setTimeout(() => { s.textContent = ''; }, 2500);
+  });
+
+  /* Clear history */
+  document.getElementById('clear-history-btn').addEventListener('click', () => {
+    if (!confirm('Clear all download history?')) return;
+    save(KEYS.history, []);
+    document.getElementById('stat-games').textContent = '0';
+    renderHistory();
+  });
+
+  /* Reset entire profile */
+  document.getElementById('reset-profile-btn').addEventListener('click', () => {
+    if (!confirm('Reset your entire profile? This cannot be undone.')) return;
+    [KEYS.profile, KEYS.applied, KEYS.history, KEYS.requests].forEach(k => localStorage.removeItem(k));
+    location.reload();
   });
 });
 </script>

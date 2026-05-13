@@ -11,12 +11,7 @@
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<div class="cursor-dot"></div>
-<div class="cursor-ring"></div>
-
-<video class="bg-video" autoplay loop muted playsinline>
-  <source src="../background.mp4" type="video/mp4">
-</video>
+<video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
 <div class="bg-overlay"></div>
 
 <div class="di-wrapper">
@@ -51,12 +46,12 @@
 
     <!-- Search + Filters -->
     <div class="store-controls reveal">
-      <div class="search-container" style="position:relative;max-width:360px;flex:1">
-        <span class="search-icon-left">
+      <div style="position:relative;max-width:360px;flex:1;min-width:200px">
+        <span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--text-30);display:flex;pointer-events:none;transition:color 0.3s" id="search-icon-ref">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
-        <input type="text" id="store-search" class="premium-search" placeholder="Search games...">
-        <span class="search-kbd">⌘K</span>
+        <input type="text" id="store-search" placeholder="Search games..." autocomplete="off">
+        <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:9px;color:var(--text-30);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.07);border-radius:5px;padding:3px 7px;pointer-events:none">⌘K</span>
       </div>
       <div class="filter-strip" id="filter-strip">
         <button class="filter-btn active" data-filter="all">All</button>
@@ -69,7 +64,7 @@
     <!-- Featured -->
     <div class="featured-banner reveal">
       <div class="featured-img">
-        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900_2x.jpg" alt="Elden Ring" style="object-position:center top">
+        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg" alt="Elden Ring">
       </div>
       <div class="featured-overlay">
         <span class="game-status-badge">✦ FEATURED</span>
@@ -95,12 +90,46 @@
 
 <script src="../shared.js"></script>
 <script>
+/* Track downloads in localStorage so profile shows real data */
+function recordDownload(gameName) {
+  try {
+    const history = JSON.parse(localStorage.getItem('st_history') || '[]');
+    const dateStr = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase();
+    // avoid duplicate on same day
+    if (!history.find(h => h.name === gameName && h.date === dateStr)) {
+      history.push({ name: gameName, date: dateStr });
+      localStorage.setItem('st_history', JSON.stringify(history));
+    }
+  } catch(e) {}
+}
+
+/* Patch openGameModal to record when user clicks Get Game */
+const _origOpen = typeof openGameModal !== 'undefined' ? openGameModal : null;
+window.openGameModal = async function(appId) {
+  if (_origOpen) await _origOpen(appId);
+  // After modal opens, intercept the download button
+  setTimeout(() => {
+    const dlBtn = document.getElementById(`dl-btn-${appId}`);
+    if (dlBtn && !dlBtn._tracked) {
+      dlBtn._tracked = true;
+      dlBtn.addEventListener('click', () => {
+        const game = CATALOG.find(g => g.id === appId);
+        if (game) recordDownload(game.name);
+      });
+    }
+  }, 200);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-  const grid = document.getElementById('game-grid');
+  const grid        = document.getElementById('game-grid');
   const searchInput = document.getElementById('store-search');
-  const filterBtns = document.querySelectorAll('.filter-btn');
-  let activeFilter = 'all';
-  let searchQuery = '';
+  const filterBtns  = document.querySelectorAll('.filter-btn');
+  const searchIcon  = document.getElementById('search-icon-ref');
+  let activeFilter  = 'all';
+  let searchQuery   = '';
+
+  searchInput.addEventListener('focus',  () => { if(searchIcon) searchIcon.style.color='var(--accent)'; });
+  searchInput.addEventListener('blur',   () => { if(searchIcon) searchIcon.style.color='var(--text-30)'; });
 
   function imgUrl(id) {
     return `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/library_600x900_2x.jpg`;
@@ -108,13 +137,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function render() {
     const list = CATALOG.filter(g => {
-      const matchCat = activeFilter === 'all' || g.cat === activeFilter;
+      const matchCat    = activeFilter === 'all' || g.cat === activeFilter;
       const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchCat && matchSearch;
     });
+
+    if (!list.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;padding:60px 0;text-align:center;font-family:var(--font-mono);font-size:13px;color:var(--text-30)">No games found for "<span style="color:var(--accent)">${searchQuery}</span>"</div>`;
+      return;
+    }
+
     grid.innerHTML = list.map(g => `
-      <div class="game-card reveal" onclick="openGameModal('${g.id}')">
-        <div class="game-img"><img src="${imgUrl(g.id)}" alt="${g.name}" loading="lazy" onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg'"></div>
+      <div class="game-card" onclick="openGameModal('${g.id}')">
+        <div class="game-img">
+          <img
+            src="${imgUrl(g.id)}"
+            alt="${g.name}"
+            loading="lazy"
+            onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg';this.onerror=null">
+        </div>
         <span class="game-status-badge">VERIFIED</span>
         <div class="game-overlay"><button class="btn-get">Get Game</button></div>
         <div class="game-info">
@@ -122,10 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="game-tag">${g.tag}</span>
         </div>
       </div>`).join('');
-    // trigger reveal
-    setTimeout(() => {
-      document.querySelectorAll('.game-card.reveal').forEach(el => el.classList.add('visible'));
-    }, 50);
   }
 
   filterBtns.forEach(btn => {
@@ -137,7 +174,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  searchInput.addEventListener('input', e => { searchQuery = e.target.value; render(); });
+  searchInput.addEventListener('input', e => {
+    searchQuery = e.target.value;
+    render();
+  });
+
+  // Keyboard shortcut ⌘K / Ctrl+K
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    }
+  });
+
   render();
 });
 </script>

@@ -10,8 +10,6 @@
 </head>
 <body>
 <div class="page-transition-overlay"></div>
-<div class="cursor-dot"></div>
-<div class="cursor-ring"></div>
 <video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
 <div class="bg-overlay"></div>
 
@@ -47,11 +45,10 @@
 
     <div class="store-controls reveal" style="flex-direction:column;align-items:flex-start;gap:14px">
       <div style="position:relative;width:100%;max-width:480px">
-        <span class="search-icon-left" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text-30);display:flex">
+        <span id="fix-search-icon" style="position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--text-30);display:flex;pointer-events:none;transition:color 0.3s">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
-        <input type="text" id="fix-search" class="premium-search" placeholder="Search fixes...">
-        <span class="search-kbd">⌘K</span>
+        <input type="text" id="fix-search" placeholder="Search fixes or games...">
       </div>
       <div class="filter-strip" id="fix-filter-strip">
         <button class="filter-btn active" data-filter="all">All</button>
@@ -59,6 +56,12 @@
         <button class="filter-btn" data-filter="crash">Crash Fix</button>
         <button class="filter-btn" data-filter="audio">Audio</button>
       </div>
+    </div>
+
+    <!-- Applied count -->
+    <div id="applied-banner" style="display:none;margin-bottom:24px;padding:12px 20px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:12px;font-family:var(--font-mono);font-size:11px;color:#4ade80;display:flex;align-items:center;gap:10px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;flex-shrink:0"></span>
+      <span id="applied-count-text">0 fixes applied this session</span>
     </div>
 
     <div class="fixes-grid" id="fixes-grid"></div>
@@ -76,21 +79,47 @@
 
 <script src="../shared.js"></script>
 <script>
+function loadApplied() { try { return JSON.parse(localStorage.getItem('st_applied') || '[]'); } catch { return []; } }
+function saveApplied(arr) { localStorage.setItem('st_applied', JSON.stringify(arr)); }
+
+function updateAppliedBanner(applied) {
+  const banner = document.getElementById('applied-banner');
+  const text   = document.getElementById('applied-count-text');
+  if (applied.length > 0) {
+    banner.style.display = 'flex';
+    text.textContent = `${applied.length} fix${applied.length > 1 ? 'es' : ''} applied — visible in your Profile`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  const grid = document.getElementById('fixes-grid');
-  const searchEl = document.getElementById('fix-search');
+  const grid       = document.getElementById('fixes-grid');
+  const searchEl   = document.getElementById('fix-search');
   const filterBtns = document.querySelectorAll('#fix-filter-strip .filter-btn');
+  const searchIcon = document.getElementById('fix-search-icon');
   let activeFilter = 'all', query = '';
-  const applied = new Set(JSON.parse(localStorage.getItem('st_applied') || '[]'));
+
+  searchEl.addEventListener('focus', () => { if(searchIcon) searchIcon.style.color='var(--accent)'; });
+  searchEl.addEventListener('blur',  () => { if(searchIcon) searchIcon.style.color='var(--text-30)'; });
+
+  let applied = loadApplied();
+  updateAppliedBanner(applied);
 
   function render() {
     const list = fixes.filter(f => {
       const matchCat = activeFilter === 'all' || f.cat === activeFilter;
-      const matchQ = !query || f.title.toLowerCase().includes(query) || f.game.toLowerCase().includes(query);
+      const matchQ   = !query || f.title.toLowerCase().includes(query) || f.game.toLowerCase().includes(query);
       return matchCat && matchQ;
     });
+
+    if (!list.length) {
+      grid.innerHTML = `<div style="padding:60px 0;text-align:center;font-family:var(--font-mono);font-size:13px;color:var(--text-30)">No fixes found for "<span style="color:var(--accent)">${query}</span>"</div>`;
+      return;
+    }
+
     grid.innerHTML = list.map((f, i) => `
-      <div class="fix-card reveal" style="transition-delay:${i * 0.04}s">
+      <div class="fix-card reveal" style="transition-delay:${Math.min(i,8)*0.04}s">
         <div class="fix-header">
           <h3>${f.title}</h3>
           ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
@@ -100,21 +129,29 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="fix-game-tag">${f.game}</span>
           <span class="fix-version-tag">${f.version}</span>
         </div>
-        <button class="btn-apply ${applied.has(f.title) ? 'applied' : ''}" data-title="${f.title}">
-          ${applied.has(f.title) ? '✓ Applied' : 'Apply Fix'}
+        <button class="btn-apply ${applied.includes(f.title) ? 'applied' : ''}" data-title="${f.title}">
+          ${applied.includes(f.title) ? '✓ Applied' : 'Apply Fix'}
         </button>
       </div>`).join('');
 
+    // Attach click handlers
     document.querySelectorAll('.btn-apply:not(.applied)').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = btn.dataset.title;
-        applied.add(t);
-        localStorage.setItem('st_applied', JSON.stringify([...applied]));
+        if (!applied.includes(t)) {
+          applied.push(t);
+          saveApplied(applied);
+        }
         btn.classList.add('applied');
         btn.textContent = '✓ Applied';
+        updateAppliedBanner(applied);
       });
     });
-    setTimeout(() => { document.querySelectorAll('.fix-card.reveal').forEach(el => el.classList.add('visible')); }, 30);
+
+    // Reveal
+    setTimeout(() => {
+      document.querySelectorAll('.fix-card.reveal').forEach(el => el.classList.add('visible'));
+    }, 30);
   }
 
   filterBtns.forEach(btn => {
@@ -126,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   searchEl.addEventListener('input', e => { query = e.target.value.toLowerCase(); render(); });
+
   render();
 });
 </script>
