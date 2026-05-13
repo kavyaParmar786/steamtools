@@ -185,36 +185,58 @@ async function fetchLiveGameCount() {
 async function loadFullCatalog() {
   if (CATALOG_LOADED) return DYNAMIC_CATALOG;
   
-  try {
-    // 1. Fetch file list from GitHub to discover all IDs
-    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents`, { 
-      signal: AbortSignal.timeout(8000) 
+  // Helper to process a list of IDs/filenames
+  const processDiscovered = (ids) => {
+    const newIds = ids.filter(id => !DYNAMIC_CATALOG.some(g => g.id === id));
+    newIds.forEach(id => {
+      DYNAMIC_CATALOG.push({
+        id: id,
+        name: `Game ${id}`,
+        cat: 'uncategorized',
+        tag: 'Vault · Discovery',
+        dynamic: true
+      });
     });
-    
+    console.log(`[Vault] Synced ${ids.length} games (Discovered ${newIds.length} new).`);
+  };
+
+  try {
+    // 1. Try GitHub Filebase first
+    console.log("[Vault] Attempting GitHub discovery...");
+    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents`, { signal: AbortSignal.timeout(8000) });
     if (r.ok) {
       const files = await r.json();
       if (Array.isArray(files)) {
-        const newIds = files
-          .filter(f => f.name.endsWith('.lua'))
-          .map(f => f.name.replace('.lua', ''))
-          .filter(id => !DYNAMIC_CATALOG.some(g => g.id === id));
-        
-        newIds.forEach(id => {
-          DYNAMIC_CATALOG.push({
-            id: id,
-            name: `Game ${id}`,
-            cat: 'uncategorized',
-            tag: 'Vault · New',
-            dynamic: true
-          });
-        });
-        console.log(`[Vault] Discovered ${newIds.length} new games.`);
-      } else {
-        console.warn("[Vault] GitHub API response is not an array:", files);
+        const ids = files.filter(f => f.name.endsWith('.lua')).map(f => f.name.replace('.lua', ''));
+        processDiscovered(ids);
+        CATALOG_LOADED = true;
+        return DYNAMIC_CATALOG;
       }
     }
+    throw new Error("GitHub discovery failed or returned invalid data");
   } catch(e) {
-    console.warn("[Vault] Sync error:", e);
+    console.warn("[Vault] GitHub Discovery failed, trying GameGen fallback...", e);
+    
+    // 2. Fallback to GameGen API
+    try {
+      const endpoints = [`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/games` ];
+      for (const url of endpoints) {
+        try {
+          const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          if (r.ok) {
+            const j = await r.json();
+            const ids = Array.isArray(j) ? j.map(item => item.id || item) : (j.games || j.catalog || []);
+            if (ids.length) {
+              processDiscovered(ids);
+              CATALOG_LOADED = true;
+              return DYNAMIC_CATALOG;
+            }
+          }
+        } catch(err) { continue; }
+      }
+    } catch(err) {
+      console.warn("[Vault] All discovery sources failed. Using hardcoded catalog only.");
+    }
   }
   
   CATALOG_LOADED = true;
