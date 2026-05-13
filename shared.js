@@ -140,10 +140,11 @@ async function fetchDiscordMembers() {
 }
 
 /* ── LIVE GAME COUNT from catalog + gamegen ────── */
+let DYNAMIC_CATALOG = [...CATALOG];
+let CATALOG_LOADED = false;
+
 async function fetchLiveGameCount() {
-  // Base count from our catalog
   const baseCount = CATALOG.length;
-  // Try to get total from gamegen API
   try {
     const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/count`, { signal: AbortSignal.timeout(5000) });
     if (r.ok) {
@@ -151,16 +152,49 @@ async function fetchLiveGameCount() {
       if (j.count && j.count > baseCount) return j.count;
     }
   } catch(e) {}
-  // Try github repo file count
+  return baseCount;
+}
+
+/**
+ * Loads all games by discovering IDs from the GitHub filebase 
+ * and fetching metadata from Steam for missing entries.
+ */
+async function loadFullCatalog() {
+  if (CATALOG_LOADED) return DYNAMIC_CATALOG;
+  
   try {
-    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents`, { signal: AbortSignal.timeout(5000) });
+    // 1. Fetch file list from GitHub to discover all IDs
+    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents`, { 
+      signal: AbortSignal.timeout(8000) 
+    });
+    
     if (r.ok) {
       const files = await r.json();
-      const luaCount = Array.isArray(files) ? files.filter(f => f.name.endsWith('.lua')).length : 0;
-      if (luaCount > baseCount) return luaCount;
+      const newIds = files
+        .filter(f => f.name.endsWith('.lua'))
+        .map(f => f.name.replace('.lua', ''))
+        .filter(id => !DYNAMIC_CATALOG.some(g => g.id === id));
+      
+      // 2. For new IDs, we add them to the catalog as "Pending" or fetch basic metadata
+      // To prevent rate limiting, we only fetch metadata for a subset or on-demand
+      newIds.forEach(id => {
+        DYNAMIC_CATALOG.push({
+          id: id,
+          name: `Game ${id}`,
+          cat: 'uncategorized',
+          tag: 'Vault · New',
+          dynamic: true
+        });
+      });
+      
+      console.log(`[Vault] Discovered ${newIds.length} new games from filebase.`);
     }
-  } catch(e) {}
-  return baseCount;
+  } catch(e) {
+    console.warn("[Vault] Failed to sync GitHub filebase:", e);
+  }
+  
+  CATALOG_LOADED = true;
+  return DYNAMIC_CATALOG;
 }
 
 /* ── LIVE STATS INIT ───────────────────────────── */

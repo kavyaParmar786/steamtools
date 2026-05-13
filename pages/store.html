@@ -137,6 +137,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchIcon  = document.getElementById('search-icon-ref');
   let activeFilter  = 'all';
   let searchQuery   = '';
+  let visibleLimit  = 12;
+
+  // Infinite Scroll Observer
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      const source = typeof DYNAMIC_CATALOG !== 'undefined' ? DYNAMIC_CATALOG : CATALOG;
+      const filtered = source.filter(g => (activeFilter === 'all' || g.cat === activeFilter) && (!searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase())));
+      
+      if (visibleLimit < filtered.length) {
+        visibleLimit += 12;
+        render(true);
+      }
+    }
+  }, { threshold: 0.1 });
+
+  const sentinel = document.querySelector('footer');
+  if (sentinel) observer.observe(sentinel);
 
   searchInput.addEventListener('focus',  () => { if(searchIcon) searchIcon.style.color='var(--accent)'; });
   searchInput.addEventListener('blur',   () => { if(searchIcon) searchIcon.style.color='var(--text-30)'; });
@@ -145,20 +162,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/library_600x900_2x.jpg`;
   }
 
-  function render() {
-    const list = CATALOG.filter(g => {
+  function render(append = false) {
+    const source = typeof DYNAMIC_CATALOG !== 'undefined' ? DYNAMIC_CATALOG : CATALOG;
+    
+    const filtered = source.filter(g => {
       const matchCat    = activeFilter === 'all' || g.cat === activeFilter;
-      const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.id.includes(searchQuery);
       return matchCat && matchSearch;
     });
 
-    if (!list.length) {
+    if (!append) {
+      grid.innerHTML = '';
+      visibleLimit = 12;
+    }
+
+    const chunk = filtered.slice(append ? visibleLimit - 12 : 0, visibleLimit);
+
+    if (!filtered.length) {
       grid.innerHTML = `<div style="grid-column:1/-1;padding:60px 0;text-align:center;font-family:var(--font-mono);font-size:13px;color:var(--text-30)">No games found for "<span style="color:var(--accent)">${searchQuery}</span>"</div>`;
       return;
     }
 
-    grid.innerHTML = list.map(g => `
-      <div class="game-card" onclick="openGameModal('${g.id}')">
+    const html = chunk.map(g => `
+      <div class="game-card reveal visible" onclick="openGameModal('${g.id}')">
         <div class="game-img">
           <img
             src="${imgUrl(g.id)}"
@@ -173,6 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="game-tag">${g.tag}</span>
         </div>
       </div>`).join('');
+
+    if (append) grid.insertAdjacentHTML('beforeend', html);
+    else grid.innerHTML = html;
+
+    const statusText = document.querySelector('.api-status span:last-child');
+    if (statusText) statusText.textContent = `Vault Sync · ${source.length} Titles · Showing ${Math.min(visibleLimit, filtered.length)} of ${filtered.length}`;
   }
 
   filterBtns.forEach(btn => {
@@ -199,6 +231,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   render();
+
+  // Sync full catalog in background
+  if (typeof loadFullCatalog === 'function') {
+    loadFullCatalog().then(() => {
+      render(); // Re-render once discovered games are in
+    });
+  }
 });
 </script>
 </body>
