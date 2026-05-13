@@ -86,6 +86,14 @@
 
     <!-- Game Grid -->
     <div class="game-grid" id="game-grid"></div>
+
+    <!-- Load More -->
+    <div class="load-more-wrap reveal" style="text-align:center;margin:40px 0 80px">
+      <button id="load-more-btn" class="nav-btn-primary" style="padding:14px 40px;display:none">Load More Games</button>
+      <div id="loading-spinner" style="display:none;color:var(--text-30);font-family:var(--font-mono);font-size:12px">
+        <span class="tag-dot" style="background:var(--accent);animation:pulse 1s infinite"></span> Syncing Vault...
+      </div>
+    </div>
   </div>
 </div>
 
@@ -123,7 +131,8 @@ window.openGameModal = async function(appId) {
     if (dlBtn && !dlBtn._tracked) {
       dlBtn._tracked = true;
       dlBtn.addEventListener('click', () => {
-        const game = CATALOG.find(g => g.id === appId);
+        const source = typeof DYNAMIC_CATALOG !== 'undefined' ? DYNAMIC_CATALOG : CATALOG;
+        const game = source.find(g => g.id === appId);
         if (game) recordDownload(game.name);
       });
     }
@@ -135,25 +144,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('store-search');
   const filterBtns  = document.querySelectorAll('.filter-btn');
   const searchIcon  = document.getElementById('search-icon-ref');
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  const spinner     = document.getElementById('loading-spinner');
+
   let activeFilter  = 'all';
   let searchQuery   = '';
-  let visibleLimit  = 12;
-
-  // Infinite Scroll Observer
-  const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting) {
-      const source = typeof DYNAMIC_CATALOG !== 'undefined' ? DYNAMIC_CATALOG : CATALOG;
-      const filtered = source.filter(g => (activeFilter === 'all' || g.cat === activeFilter) && (!searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase())));
-      
-      if (visibleLimit < filtered.length) {
-        visibleLimit += 12;
-        render(true);
-      }
-    }
-  }, { threshold: 0.1 });
-
-  const sentinel = document.querySelector('footer');
-  if (sentinel) observer.observe(sentinel);
+  let visibleLimit  = 24;
+  const CHUNK_SIZE  = 24;
 
   searchInput.addEventListener('focus',  () => { if(searchIcon) searchIcon.style.color='var(--accent)'; });
   searchInput.addEventListener('blur',   () => { if(searchIcon) searchIcon.style.color='var(--text-30)'; });
@@ -165,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function render(append = false) {
     const source = typeof DYNAMIC_CATALOG !== 'undefined' ? DYNAMIC_CATALOG : CATALOG;
     
-    const filtered = source.filter(g => {
+    let filtered = source.filter(g => {
       const matchCat    = activeFilter === 'all' || g.cat === activeFilter;
       const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.id.includes(searchQuery);
       return matchCat && matchSearch;
@@ -173,13 +170,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!append) {
       grid.innerHTML = '';
-      visibleLimit = 12;
+      visibleLimit = CHUNK_SIZE;
     }
 
-    const chunk = filtered.slice(append ? visibleLimit - 12 : 0, visibleLimit);
+    const chunk = filtered.slice(append ? visibleLimit - CHUNK_SIZE : 0, visibleLimit);
 
     if (!filtered.length) {
       grid.innerHTML = `<div style="grid-column:1/-1;padding:60px 0;text-align:center;font-family:var(--font-mono);font-size:13px;color:var(--text-30)">No games found for "<span style="color:var(--accent)">${searchQuery}</span>"</div>`;
+      if(loadMoreBtn) loadMoreBtn.style.display = 'none';
       return;
     }
 
@@ -204,6 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (append) grid.insertAdjacentHTML('beforeend', html);
     else grid.innerHTML = html;
 
+    // Show/Hide Load More
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = visibleLimit < filtered.length ? 'inline-block' : 'none';
+    }
+
     // Trigger metadata enrichment for dynamic games in this chunk
     chunk.forEach(async (g) => {
       if (g.dynamic || g.name.startsWith('Game ')) {
@@ -218,7 +221,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const statusText = document.querySelector('.api-status span:last-child');
-    if (statusText) statusText.textContent = `Vault Sync · ${source.length} Titles · Showing ${Math.min(visibleLimit, filtered.length)} of ${filtered.length}`;
+    if (statusText) statusText.textContent = `Vault Sync · ${source.length.toLocaleString()} Titles · Showing ${Math.min(visibleLimit, filtered.length).toLocaleString()} of ${filtered.length.toLocaleString()}`;
+  }
+
+  // Infinite Scroll Observer (Optional, now working with Load More)
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && loadMoreBtn && loadMoreBtn.style.display !== 'none') {
+      visibleLimit += CHUNK_SIZE;
+      render(true);
+    }
+  }, { threshold: 0.1 });
+
+  const sentinel = document.querySelector('footer');
+  if (sentinel) observer.observe(sentinel);
+
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', () => {
+      visibleLimit += CHUNK_SIZE;
+      render(true);
+    });
   }
 
   filterBtns.forEach(btn => {
@@ -248,9 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sync full catalog in background
   if (typeof loadFullCatalog === 'function') {
+    if(spinner) spinner.style.display = 'block';
     loadFullCatalog().then(() => {
-      render(); // Re-render once discovered games are in
+      if(spinner) spinner.style.display = 'none';
+      render(); 
     });
+  }
+});    });
   }
 });
 </script>

@@ -417,12 +417,39 @@ async function openGameModal(appId) {
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
-  // Load data in parallel
-  const [details, reviews, dlUrl] = await Promise.all([
+  // Load main data in parallel (details + download link)
+  const [details, dlUrl] = await Promise.all([
     fetchSteamDetails(appId),
-    fetchSteamReviews(appId),
     fetchGameGenLink(appId)
   ]);
+  
+  // Fetch reviews in background after modal opens
+  fetchSteamReviews(appId).then(reviews => {
+    if (reviews) {
+      const revEl = document.getElementById(`mrev-${appId}`);
+      if (revEl) {
+        const total = reviews.total_reviews || 0;
+        const pos   = reviews.total_positive || 0;
+        const pct   = total > 0 ? Math.round((pos / total) * 100) : 0;
+        let label = 'Overwhelmingly Positive', cls = '';
+        if (pct < 40) { label = 'Mostly Negative'; cls = 'negative'; }
+        else if (pct < 70) { label = 'Mixed'; cls = 'mixed'; }
+        else if (pct < 80) { label = 'Mostly Positive'; }
+        else if (pct < 95) { label = 'Very Positive'; }
+        revEl.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">
+            <div class="review-score-big ${cls}">${pct}%</div>
+          </div>
+          <div class="review-bar-wrap">
+            <div class="review-label ${cls}">${label}</div>
+            <div class="review-count">${total.toLocaleString()} reviews</div>
+            <div class="review-bar-track" style="margin-top:8px">
+              <div class="review-bar-fill ${cls}" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      }
+    }
+  });
 
   // ── Populate DETAILS ──
   if (details) {
@@ -530,31 +557,7 @@ async function openGameModal(appId) {
     }
   }
 
-  // ── Populate REVIEWS ──
-  if (reviews) {
-    const revEl = document.getElementById(`mrev-${appId}`);
-    if (revEl) {
-      const total = reviews.total_reviews || 0;
-      const pos   = reviews.total_positive || 0;
-      const pct   = total > 0 ? Math.round((pos / total) * 100) : 0;
-      let label = 'Overwhelmingly Positive', cls = '';
-      if (pct < 40) { label = 'Mostly Negative'; cls = 'negative'; }
-      else if (pct < 70) { label = 'Mixed'; cls = 'mixed'; }
-      else if (pct < 80) { label = 'Mostly Positive'; }
-      else if (pct < 95) { label = 'Very Positive'; }
-      revEl.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">
-          <div class="review-score-big ${cls}">${pct}%</div>
-        </div>
-        <div class="review-bar-wrap">
-          <div class="review-label ${cls}">${label}</div>
-          <div class="review-count">${total.toLocaleString()} reviews</div>
-          <div class="review-bar-track" style="margin-top:8px">
-            <div class="review-bar-fill ${cls}" style="width:${pct}%"></div>
-          </div>
-        </div>`;
-    }
-  }
+
 
   // ── Download button ──
   const dlBtn  = document.getElementById(`dlbtn-${appId}`);
