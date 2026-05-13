@@ -117,7 +117,15 @@ body::after {
 @keyframes ringRotate { to{transform:rotate(360deg)} }
 .loader-icon { position:relative; z-index:1; width:54px; height:54px; border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:14px; font-weight:700; color:#000; box-shadow:0 0 0 1px rgba(255,255,255,0.1),0 0 40px rgba(255,255,255,0.1); animation:iconBreath 2s ease-in-out infinite; }
 @keyframes iconBreath { 0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,0.1),0 0 30px rgba(255,255,255,0.08)} 50%{box-shadow:0 0 0 1px rgba(255,255,255,0.2),0 0 60px rgba(255,255,255,0.18)} }
-.loader-logo-wrap { display:flex; align-items:center; gap:16px; }
+.loader-logo-wrap { display:flex; align-items:center; gap:14px; }
+.loader-brand-img {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  filter: drop-shadow(0 0 12px rgba(255,106,0,0.5));
+  animation: iconBreath 2s ease-in-out infinite;
+}
+
 .loader-title { font-family:var(--font-display); font-size:42px; letter-spacing:5px; color:#fff; position:relative; animation:titleGlitch 4s steps(1) infinite; }
 .loader-title span { color:#fff; font-style:italic; }
 @keyframes titleGlitch { 0%,94%,100%{clip-path:none;transform:none} 95%{clip-path:inset(20% 0 60% 0);transform:translate(-3px,0);color:rgba(255,106,0,0.9)} 96%{clip-path:inset(60% 0 10% 0);transform:translate(3px,0);color:rgba(0,212,255,0.9)} 97%{clip-path:none;transform:none} }
@@ -130,6 +138,27 @@ body::after {
 .loader-stats .sep { width:1px; height:10px; background:rgba(255,255,255,0.1); }
 .loader-tag { font-family:var(--font-mono); font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.22); text-transform:uppercase; animation:tagBlink 1.2s steps(1) infinite; }
 @keyframes tagBlink { 0%,49%{opacity:1} 50%,100%{opacity:0.3} }
+
+/* ── LOGO IMAGE (replaces text icon) ─────────── */
+.nav-logo-icon-img {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  /* subtle glow matching brand */
+  filter: drop-shadow(0 0 8px rgba(255,106,0,0.35));
+  transition: filter 0.3s;
+}
+.nav-logo-icon-img:hover {
+  filter: drop-shadow(0 0 14px rgba(255,106,0,0.6));
+}
+.footer-logo-icon-img {
+  width: 32px; height: 32px;
+  border-radius: 7px;
+}
+/* Remove old icon box when image is used */
+.nav-logo-icon-img + .nav-logo-text { margin-left: 2px; }
 
 /* ── NAV ─────────────────────────────────────── */
 .di-wrapper { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:300; }

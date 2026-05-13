@@ -198,6 +198,7 @@ function initLoader() {
         <div class="loader-icon">ST</div>
       </div>
       <div class="loader-logo-wrap">
+        <img src="icon.png" class="loader-brand-img" alt="Logo" onerror="this.style.display='none'">
         <span class="loader-title">STRAW<span>HAT</span></span>
       </div>
       <div class="loader-progress">
