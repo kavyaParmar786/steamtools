@@ -201,19 +201,36 @@ async function loadFullCatalog() {
   };
 
   try {
-    // 1. Try GitHub Filebase first
-    console.log("[Vault] Attempting GitHub discovery...");
-    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents`, { signal: AbortSignal.timeout(8000) });
+    // 1. Try GitHub Recursive Tree API (Handles up to 100,000 files)
+    console.log("[Vault] Attempting Recursive GitHub discovery...");
+    const treeUrl = `https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/git/trees/main?recursive=1`;
+    const r = await fetch(treeUrl, { signal: AbortSignal.timeout(12000) });
+    
     if (r.ok) {
-      const files = await r.json();
-      if (Array.isArray(files)) {
-        const ids = files.filter(f => f.name.endsWith('.lua')).map(f => f.name.replace('.lua', ''));
+      const data = await r.json();
+      if (data.tree && Array.isArray(data.tree)) {
+        const ids = data.tree
+          .filter(f => f.path.endsWith('.lua'))
+          .map(f => f.path.split('/').pop().replace('.lua', ''));
         processDiscovered(ids);
         CATALOG_LOADED = true;
         return DYNAMIC_CATALOG;
       }
     }
-    throw new Error("GitHub discovery failed or returned invalid data");
+    // Fallback to 'master' if 'main' fails
+    const r2 = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/git/trees/master?recursive=1`, { signal: AbortSignal.timeout(10000) });
+    if (r2.ok) {
+      const data = await r2.json();
+      if (data.tree && Array.isArray(data.tree)) {
+        const ids = data.tree
+          .filter(f => f.path.endsWith('.lua'))
+          .map(f => f.path.split('/').pop().replace('.lua', ''));
+        processDiscovered(ids);
+        CATALOG_LOADED = true;
+        return DYNAMIC_CATALOG;
+      }
+    }
+    throw new Error("GitHub Tree API failed");
   } catch(e) {
     console.warn("[Vault] GitHub Discovery failed, trying GameGen fallback...", e);
     
