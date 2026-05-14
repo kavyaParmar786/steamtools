@@ -1,0 +1,12 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/store", "destination": "/pages/store.html" },
+    { "source": "/fixes", "destination": "/pages/fixes.html" },
+    { "source": "/drops", "destination": "/pages/drops.html" },
+    { "source": "/request", "destination": "/pages/request.html" },
+    { "source": "/profile", "destination": "/pages/profile.html" },
+    { "source": "/admin-strawhat", "destination": "/pages/admin-strawhat.html" }
+  ]
+}
