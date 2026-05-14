@@ -226,12 +226,15 @@ async function loadFullCatalog() {
         if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
           tag = item.tags.slice(0, 2).join(' · ').toUpperCase();
         }
+        
+        const img = item.header_image || null;
 
         DYNAMIC_CATALOG.push({ 
           id, 
           name, 
           cat: 'uncategorized', 
           tag, 
+          img,
           dynamic: true 
         });
       }
@@ -367,7 +370,7 @@ async function openGameModal(appId) {
       </div>
       <div class="modal-hero-keyart">
         <img src="${S}/${appId}/library_600x900_2x.jpg" alt="${game.name}"
-          onerror="this.src='${S}/${appId}/capsule_616x353.jpg';this.style.maxWidth='80%'">
+          onerror="this.src='${game.img || `${S}/${appId}/capsule_616x353.jpg`}';this.style.maxWidth='80%';this.style.objectFit='cover';this.style.height='100%'">
       </div>
       <div class="modal-hero-gradient"></div>
       <div class="modal-hero-badges">

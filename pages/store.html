@@ -189,7 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alt="${g.name}"
             id="img-${g.id}"
             loading="lazy"
-            onerror="this.src='https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg';this.onerror=null">
+            style="object-fit: cover; width: 100%; height: 100%;"
+            onerror="this.src='${g.img || `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.id}/header.jpg`}';this.onerror=null">
         </div>
         <span class="game-status-badge">VERIFIED</span>
         <div class="game-overlay"><button class="btn-get">Get Game</button></div>
