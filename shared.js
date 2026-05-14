@@ -4,7 +4,7 @@ const STEAMTOOLS_CONFIG = {
   GAMEGEN_KEY:  'mg_89fab80a0e6c4949b0c169de799f4499',
   GAMEGEN_BASE: 'https://gamegen.lol/api/mg_89fab80a0e6c4949b0c169de799f4499',
   STEAM_IMG:    'https://cdn.cloudflare.steamstatic.com/steam/apps',
-  GITHUB_REPO:  'steamtoolsbot-dhyey/filebase',
+  GITHUB_REPO:  'SteamTools-Team/GameList',
   DISCORD_ID:   '1263113862754545795'  // Straw Hat Discord server ID
 };
 
@@ -210,7 +210,7 @@ async function loadFullCatalog() {
 
   const processDiscovered = (ids) => {
     const startCount = DYNAMIC_CATALOG.length;
-    const uniqueIds = [...new Set(ids.map(i => String(i.id || i)))];
+    const uniqueIds = [...new Set(ids.map(i => String(i.appid || i.id || i)))];
     uniqueIds.forEach(id => {
       if (!DYNAMIC_CATALOG.some(g => g.id === id)) {
         DYNAMIC_CATALOG.push({ id, name: `Game ${id}`, cat: 'uncategorized', tag: 'Vault · Discovery', dynamic: true });
@@ -256,11 +256,11 @@ async function loadFullCatalog() {
 
   try {
     const sources = [
+      `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/games.json`,
       `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/catalog.json`,
       `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/list.json`,
       `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`,
-      `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/all`,
-      `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog`
+      `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/all`
     ];
 
     log(`Initializing aggressive discovery on ${sources.length} targets...`);
