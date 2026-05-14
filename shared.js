@@ -205,52 +205,84 @@ async function searchGameGen(query) {
 async function loadFullCatalog() {
   if (CATALOG_LOADED) return DYNAMIC_CATALOG;
   
+  const log = (msg) => console.log(`[Vault] ${msg}`);
+  const warn = (msg) => console.warn(`[Vault] ${msg}`);
+
   const processDiscovered = (ids) => {
-    const newIds = ids.filter(id => !DYNAMIC_CATALOG.some(g => g.id === String(id)));
-    newIds.forEach(id => {
-      DYNAMIC_CATALOG.push({ id: String(id), name: `Game ${id}`, cat: 'uncategorized', tag: 'Vault · Discovery', dynamic: true });
+    const startCount = DYNAMIC_CATALOG.length;
+    const uniqueIds = [...new Set(ids.map(i => String(i.id || i)))];
+    uniqueIds.forEach(id => {
+      if (!DYNAMIC_CATALOG.some(g => g.id === id)) {
+        DYNAMIC_CATALOG.push({ id, name: `Game ${id}`, cat: 'uncategorized', tag: 'Vault · Discovery', dynamic: true });
+      }
     });
-    if (newIds.length > 0) console.log(`[Vault] Discovered ${newIds.length} new titles.`);
+    const added = DYNAMIC_CATALOG.length - startCount;
+    if (added > 0) log(`Successfully injected ${added} new titles.`);
   };
 
-  async function proxyFetch(url) {
-    const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://thingproxy.freeboard.io/fetch/'];
-    return Promise.any(proxies.map(async p => {
-      try {
-        const r = await fetch(p + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
-        if (r.ok) return await r.json();
-        throw new Error('fail');
-      } catch(e) { throw e; }
-    })).catch(() => null);
+  async function bulletproofFetch(url) {
+    const proxies = [
+      '', // Direct
+      'https://api.allorigins.win/raw?url=',
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://corsproxy.io/?',
+      'https://thingproxy.freeboard.io/fetch/',
+      'https://api.cors.lol/?url='
+    ];
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s HARD limit
+
+    try {
+      // Race all proxies simultaneously
+      return await Promise.any(proxies.map(async (p, idx) => {
+        try {
+          const fetchUrl = p.includes('?') ? p + encodeURIComponent(url) : p + url;
+          const r = await fetch(fetchUrl, { signal: controller.signal });
+          if (r.ok) {
+            const data = await r.json();
+            log(`Source ${idx} responded first for ${url.split('/').pop()}`);
+            return data;
+          }
+          throw new Error('fail');
+        } catch(e) { throw e; }
+      }));
+    } catch(e) {
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   try {
-    // Fire ALL discovery attempts in parallel for maximum speed
     const sources = [
       `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/catalog.json`,
-      `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/games.json`,
       `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/list.json`,
       `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`,
       `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/all`,
       `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog`
     ];
 
-    console.log(`[Vault] Probing ${sources.length} sources in parallel...`);
+    log(`Initializing aggressive discovery on ${sources.length} targets...`);
     
-    const results = await Promise.all(sources.map(s => proxyFetch(s)));
+    // Fire all batches in parallel
+    const batches = await Promise.all(sources.map(s => bulletproofFetch(s)));
     
-    results.forEach(data => {
+    batches.forEach((data, i) => {
       if (data) {
         const ids = Array.isArray(data) ? data : (data.games || data.catalog || data.ids || Object.keys(data));
-        if (ids && ids.length > 0) processDiscovered(ids.map(i => i.id || i));
+        if (ids && ids.length > 0) processDiscovered(ids);
+      } else {
+        warn(`Source ${i} timed out or failed.`);
       }
     });
 
   } catch(e) {
-    console.warn("[Vault] Discovery batch failed.", e);
+    warn("Discovery process interrupted.");
   }
   
   CATALOG_LOADED = true;
+  log(`Discovery cycle complete. Total Vault Size: ${DYNAMIC_CATALOG.length}`);
   return DYNAMIC_CATALOG;
 }
 
