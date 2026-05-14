@@ -210,12 +210,11 @@ async function loadFullCatalog() {
     newIds.forEach(id => {
       DYNAMIC_CATALOG.push({ id: String(id), name: `Game ${id}`, cat: 'uncategorized', tag: 'Vault · Discovery', dynamic: true });
     });
+    if (newIds.length > 0) console.log(`[Vault] Discovered ${newIds.length} new titles.`);
   };
 
   async function proxyFetch(url) {
     const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://thingproxy.freeboard.io/fetch/'];
-    
-    // Try all proxies in parallel, return the first valid one
     return Promise.any(proxies.map(async p => {
       try {
         const r = await fetch(p + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
@@ -226,25 +225,29 @@ async function loadFullCatalog() {
   }
 
   try {
-    // 0. Try Manifest Files
-    for (const m of ['catalog.json', 'games.json', 'list.json']) {
-      const data = await proxyFetch(`https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/${m}`);
-      if (data) {
-        const ids = Array.isArray(data) ? data.map(i => i.id || i) : Object.keys(data);
-        if (ids.length > 10) { processDiscovered(ids); CATALOG_LOADED = true; return DYNAMIC_CATALOG; }
-      }
-    }
+    // Fire ALL discovery attempts in parallel for maximum speed
+    const sources = [
+      `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/catalog.json`,
+      `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/games.json`,
+      `https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/list.json`,
+      `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`,
+      `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/all`,
+      `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog`
+    ];
 
-    // 1. Try GameGen Endpoints
-    for (const path of ['/list', '/all', '/catalog']) {
-      const data = await proxyFetch(STEAMTOOLS_CONFIG.GAMEGEN_BASE + path);
+    console.log(`[Vault] Probing ${sources.length} sources in parallel...`);
+    
+    const results = await Promise.all(sources.map(s => proxyFetch(s)));
+    
+    results.forEach(data => {
       if (data) {
-        const ids = Array.isArray(data) ? data : (data.games || data.catalog || []);
-        if (ids.length > 0) { processDiscovered(ids.map(i => i.id || i)); CATALOG_LOADED = true; return DYNAMIC_CATALOG; }
+        const ids = Array.isArray(data) ? data : (data.games || data.catalog || data.ids || Object.keys(data));
+        if (ids && ids.length > 0) processDiscovered(ids.map(i => i.id || i));
       }
-    }
+    });
+
   } catch(e) {
-    console.warn("[Vault] Discovery failed.", e);
+    console.warn("[Vault] Discovery batch failed.", e);
   }
   
   CATALOG_LOADED = true;
