@@ -208,14 +208,35 @@ async function loadFullCatalog() {
   const log = (msg) => console.log(`[Vault] ${msg}`);
   const warn = (msg) => console.warn(`[Vault] ${msg}`);
 
-  const processDiscovered = (ids) => {
+  const processDiscovered = (items) => {
     const startCount = DYNAMIC_CATALOG.length;
-    const uniqueIds = [...new Set(ids.map(i => String(i.appid || i.id || i)))];
-    uniqueIds.forEach(id => {
-      if (!DYNAMIC_CATALOG.some(g => g.id === id)) {
-        DYNAMIC_CATALOG.push({ id, name: `Game ${id}`, cat: 'uncategorized', tag: 'Vault · Discovery', dynamic: true });
+    const addedIds = new Set();
+
+    items.forEach(item => {
+      // Handle both object {appid, name, tags} and raw string/number formats
+      const id = String(item.appid || item.id || item);
+      
+      // Skip if we already added it this batch or if it already exists in the catalog
+      if (!addedIds.has(id) && !DYNAMIC_CATALOG.some(g => g.id === id)) {
+        addedIds.add(id);
+        
+        // Extract name and tags from the object, fallback to defaults
+        const name = item.name || `Game ${id}`;
+        let tag = 'Vault · Discovery';
+        if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
+          tag = item.tags.slice(0, 2).join(' · ').toUpperCase();
+        }
+
+        DYNAMIC_CATALOG.push({ 
+          id, 
+          name, 
+          cat: 'uncategorized', 
+          tag, 
+          dynamic: true 
+        });
       }
     });
+
     const added = DYNAMIC_CATALOG.length - startCount;
     if (added > 0) log(`Successfully injected ${added} new titles.`);
   };
