@@ -201,7 +201,24 @@ async function loadFullCatalog() {
   };
 
   try {
-    // 1. Try GitHub Recursive Tree API (Handles up to 100,000 files)
+    // 0. High Priority: Try JSON manifests first (e.g. catalog.json or games.json)
+    const manifests = ['catalog.json', 'games.json', 'list.json', 'all.json'];
+    for (const m of manifests) {
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/${m}`);
+        if (r.ok) {
+          const j = await r.json();
+          const ids = Array.isArray(j) ? j.map(item => item.id || item) : Object.keys(j);
+          if (ids.length > 50) { // Ensure it's a real list
+            processDiscovered(ids);
+            CATALOG_LOADED = true;
+            return DYNAMIC_CATALOG;
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 1. Try GitHub Recursive Tree API
     console.log("[Vault] Attempting Recursive GitHub discovery...");
     const treeUrl = `https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/git/trees/main?recursive=1`;
     const r = await fetch(treeUrl, { signal: AbortSignal.timeout(12000) });
@@ -209,6 +226,7 @@ async function loadFullCatalog() {
     if (r.ok) {
       const data = await r.json();
       if (data.tree && Array.isArray(data.tree)) {
+        if (data.truncated) console.warn("[Vault] GitHub tree is truncated. Some games might be missing.");
         const ids = data.tree
           .filter(f => f.path.endsWith('.lua'))
           .map(f => f.path.split('/').pop().replace('.lua', ''));
@@ -217,8 +235,8 @@ async function loadFullCatalog() {
         return DYNAMIC_CATALOG;
       }
     }
-    // Fallback to 'master' if 'main' fails
-    const r2 = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/git/trees/master?recursive=1`, { signal: AbortSignal.timeout(10000) });
+    // Fallback to 'master'
+    const r2 = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/git/trees/master?recursive=1`, { signal: AbortSignal.timeout(15000) });
     if (r2.ok) {
       const data = await r2.json();
       if (data.tree && Array.isArray(data.tree)) {
