@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — STRAW HAT</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extras.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    .admin-card {
+      background: rgba(3,5,8,0.7); backdrop-filter: blur(40px);
+      border: 1px solid var(--glass-border); border-radius: 20px;
+      padding: 40px; margin-top: 40px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+    }
+    .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 1px solid var(--glass-border); padding-bottom: 20px; }
+    .admin-title { font-family: var(--font-display); font-size: 32px; letter-spacing: 3px; color: #fff; }
+    .sync-status { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-30); }
+    .sync-log-container {
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,106,0,0.15); border-radius: 12px;
+      padding: 20px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+      color: var(--text-50); height: 400px; overflow-y: auto; margin-top: 24px;
+      box-shadow: inset 0 2px 20px rgba(0,0,0,0.5);
+    }
+    .log-entry { margin-bottom: 4px; padding-left: 12px; border-left: 2px solid transparent; }
+    .log-info { border-left-color: var(--accent); color: var(--text-80); }
+    .log-warn { border-left-color: #ffbd2e; color: #ffbd2e; }
+    .log-system { border-left-color: var(--accent3); color: var(--accent3); }
+    
+    .admin-btn {
+      padding: 12px 28px; border-radius: 10px; border: 1px solid var(--accent);
+      background: rgba(255,106,0,0.1); color: var(--accent);
+      font-family: var(--font-ui); font-size: 13px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+      transition: all 0.3s var(--ease);
+    }
+    .admin-btn:hover { background: var(--accent); color: #fff; box-shadow: 0 0 30px var(--accent-glow); }
+    .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--text-30); color: var(--text-30); }
+  </style>
+</head>
+<body>
+<div class="page-transition-overlay"></div>
+<video class="bg-video" autoplay loop muted playsinline><source src="../background.mp4" type="video/mp4"></video>
+<div class="bg-overlay"></div>
+
+<div class="di-wrapper">
+  <nav>
+    <a href="../index.html" class="nav-logo">
+      <img src="../icon.png" class="nav-logo-icon-img" alt="Straw Hat Logo">
+      <span class="nav-logo-text">STRAW<span>HAT</span></span>
+    </a>
+    <div class="nav-sep"></div>
+    <ul class="nav-links">
+      <li><a href="../index.html">Home</a></li>
+      <li><a href="store.html">Store</a></li>
+      <li><a href="fixes.html">Fixes</a></li>
+      <li><a href="drops.html">Drops</a></li>
+    </ul>
+  </nav>
+</div>
+
+<div class="subpage-wrap">
+  <div class="container">
+    <div class="page-hero reveal">
+      <span class="page-hero-tag">// CONTROL CENTER</span>
+      <h1>ADMIN <span class="text-gradient">PANEL</span></h1>
+      <p>Global catalog synchronization and database management.</p>
+    </div>
+
+    <div class="admin-card reveal">
+      <div class="admin-header">
+        <div class="admin-title">Vault Discovery Engine</div>
+        <div class="sync-status">
+          <span class="tag-dot" style="background:#4ade80"></span> SYSTEM READY
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px">
+        <button id="start-sync" class="admin-btn">Start Full Sync</button>
+        <button id="clear-cache" class="admin-btn" style="border-color:var(--text-30);color:var(--text-30)">Clear Cache</button>
+      </div>
+
+      <div class="sync-log-container" id="log-box">
+        <div class="log-entry log-system">Admin session initialized. Standing by for sync command...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const logBox = document.getElementById('log-box');
+    const syncBtn = document.getElementById('start-sync');
+
+    function log(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log-entry log-${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // Redirect console to log box
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    console.log = (...args) => { originalLog(...args); log(args.join(' '), 'info'); };
+    console.warn = (...args) => { originalWarn(...args); log(args.join(' '), 'warn'); };
+
+    syncBtn.addEventListener('click', async () => {
+      syncBtn.disabled = true;
+      syncBtn.textContent = 'Syncing...';
+      log('Starting manual vault discovery...', 'system');
+      
+      try {
+        CATALOG_LOADED = false;
+        // Parallel sync with timeout
+        await Promise.race([
+          loadFullCatalog(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Discovery Timeout')), 45000))
+        ]);
+        log(`Discovery complete. Current DYNAMIC_CATALOG size: ${DYNAMIC_CATALOG.length}`, 'system');
+      } catch(e) {
+        log(`Sync Warning: ${e.message}`, 'warn');
+      } finally {
+        syncBtn.disabled = false;
+        syncBtn.textContent = 'Start Full Sync';
+      }
+    });
+
+    document.getElementById('clear-cache').addEventListener('click', () => {
+      localStorage.clear();
+      log('Local storage and cache cleared.', 'warn');
+    });
+
+    document.body.classList.add('pt-loaded');
+  });
+</script>
+</body>
+</html>

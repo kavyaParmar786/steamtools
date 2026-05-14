@@ -68,12 +68,8 @@
         <button class="filter-btn" data-filter="aaa">AAA</button>
         <button class="filter-btn" data-filter="indie">Indie</button>
         <button class="filter-btn" data-filter="survival">Survival</button>
-        <button class="btn-apply" id="manual-sync-btn" style="padding:8px 16px;font-size:9px">Manual Sync</button>
       </div>
     </div>
-
-    <!-- Sync Log (Debug) -->
-    <div id="sync-log" style="display:none;margin-bottom:20px;padding:15px;background:rgba(0,0,0,0.4);border:1px solid var(--glass-border);border-radius:12px;font-family:var(--font-mono);font-size:10px;color:var(--text-30);max-height:100px;overflow-y:auto"></div>
 
     <!-- Featured -->
     <div class="featured-banner reveal">
@@ -280,35 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.select();
     }
   });
-
-  const manualSyncBtn = document.getElementById('manual-sync-btn');
-  const syncLog = document.getElementById('sync-log');
-
-  if (manualSyncBtn) {
-    manualSyncBtn.addEventListener('click', async () => {
-      syncLog.style.display = 'block';
-      syncLog.innerHTML = '<div>[System] Starting Manual Sync...</div>';
-      manualSyncBtn.disabled = true;
-      manualSyncBtn.textContent = 'Syncing...';
-      
-      const originalConsoleLog = console.log;
-      const originalConsoleWarn = console.warn;
-      console.log = (...args) => { originalConsoleLog(...args); syncLog.innerHTML += `<div style="color:var(--text-50)">${args.join(' ')}</div>`; syncLog.scrollTop = syncLog.scrollHeight; };
-      console.warn = (...args) => { originalConsoleWarn(...args); syncLog.innerHTML += `<div style="color:var(--accent)">${args.join(' ')}</div>`; syncLog.scrollTop = syncLog.scrollHeight; };
-      
-      try {
-        CATALOG_LOADED = false;
-        await loadFullCatalog();
-        showToast('Vault Synced Successfully', '✓');
-      } catch(e) {
-        showToast('Sync Failed', '✕');
-      } finally {
-        manualSyncBtn.disabled = false;
-        manualSyncBtn.textContent = 'Manual Sync';
-        render();
-      }
-    });
-  }
 
   render();
   document.body.classList.add('pt-loaded');

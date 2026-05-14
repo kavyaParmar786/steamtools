@@ -214,13 +214,15 @@ async function loadFullCatalog() {
 
   async function proxyFetch(url) {
     const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://thingproxy.freeboard.io/fetch/'];
-    for (const p of proxies) {
+    
+    // Try all proxies in parallel, return the first valid one
+    return Promise.any(proxies.map(async p => {
       try {
-        const r = await fetch(p + encodeURIComponent(url), { signal: AbortSignal.timeout(6000) });
+        const r = await fetch(p + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
         if (r.ok) return await r.json();
-      } catch(e) {}
-    }
-    return null;
+        throw new Error('fail');
+      } catch(e) { throw e; }
+    })).catch(() => null);
   }
 
   try {
