@@ -1,6 +1,9 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/pages/(.*).html", "destination": "/$1", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/store", "destination": "/pages/store.html" },
     { "source": "/fixes", "destination": "/pages/fixes.html" },
