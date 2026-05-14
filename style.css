@@ -45,6 +45,17 @@
   #webgl-bg { opacity: 0.5; } /* Fade out background on mobile */
 }
 
+/* ── UI CORE — REVEAL & TRANSITIONS ── */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); will-change: opacity, transform; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+.page-transition-overlay {
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  pointer-events: none; opacity: 1; transition: opacity 0.5s var(--ease);
+}
+.pt-loaded .page-transition-overlay { opacity: 0; }
+.pt-exit .page-transition-overlay { opacity: 1; pointer-events: auto; }
+
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; }
 
