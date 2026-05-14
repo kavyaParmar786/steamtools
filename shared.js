@@ -281,17 +281,48 @@ async function loadFullCatalog() {
   } catch(e) {
     console.warn("[Vault] GitHub Crawler failed, trying GameGen fallback...", e);
     
+/**
+ * Searches the GameGen database for titles matching a query.
+ * Useful for accessing the full 66k+ database on-demand.
+ */
+async function searchGameGen(query) {
+  if (!query || query.length < 2) return [];
+  try {
+    const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/search?q=${encodeURIComponent(query)}`, { 
+      signal: AbortSignal.timeout(5000) 
+    });
+    if (r.ok) {
+      const j = await r.json();
+      const results = Array.isArray(j) ? j : (j.results || j.games || []);
+      // Map results to our catalog format and add to DYNAMIC_CATALOG
+      results.forEach(res => {
+        if (!DYNAMIC_CATALOG.some(g => g.id === String(res.id))) {
+          DYNAMIC_CATALOG.push({
+            id: String(res.id),
+            name: res.name || `Game ${res.id}`,
+            cat: res.category || 'uncategorized',
+            tag: res.tag || 'Vault · Remote',
+            dynamic: true
+          });
+        }
+      });
+      return results;
+    }
+  } catch(e) {}
+  return [];
+}
+
     // 2. Fallback to GameGen API
     try {
-      const endpoints = [`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/games` ];
+      const endpoints = [`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/all`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog` ];
       for (const url of endpoints) {
         try {
-          const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
           if (r.ok) {
             const j = await r.json();
-            const ids = Array.isArray(j) ? j.map(item => item.id || item) : (j.games || j.catalog || []);
+            const ids = Array.isArray(j) ? j : (j.games || j.catalog || j.ids || []);
             if (ids.length) {
-              processDiscovered(ids);
+              processDiscovered(ids.map(i => i.id || i));
               CATALOG_LOADED = true;
               return DYNAMIC_CATALOG;
             }
