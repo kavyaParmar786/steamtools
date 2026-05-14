@@ -182,34 +182,38 @@ async function fetchLiveGameCount() {
  * Loads all games by discovering IDs from the GitHub filebase 
  * and fetching metadata from Steam for missing entries.
  */
+async function searchGameGen(query) {
+  if (!query || query.length < 2) return [];
+  try {
+    const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/search?q=${encodeURIComponent(query)}`, { 
+      signal: AbortSignal.timeout(5000) 
+    });
+    if (r.ok) {
+      const j = await r.json();
+      const results = Array.isArray(j) ? j : (j.results || j.games || []);
+      results.forEach(res => {
+        if (!DYNAMIC_CATALOG.some(g => g.id === String(res.id))) {
+          DYNAMIC_CATALOG.push({ id: String(res.id), name: res.name || `Game ${res.id}`, cat: 'uncategorized', tag: 'Vault · Remote', dynamic: true });
+        }
+      });
+      return results;
+    }
+  } catch(e) {}
+  return [];
+}
+
 async function loadFullCatalog() {
   if (CATALOG_LOADED) return DYNAMIC_CATALOG;
   
-  // Helper to process a list of IDs/filenames
   const processDiscovered = (ids) => {
-    const newIds = ids.filter(id => !DYNAMIC_CATALOG.some(g => g.id === id));
+    const newIds = ids.filter(id => !DYNAMIC_CATALOG.some(g => g.id === String(id)));
     newIds.forEach(id => {
-      DYNAMIC_CATALOG.push({
-        id: id,
-        name: `Game ${id}`,
-        cat: 'uncategorized',
-        tag: 'Vault · Discovery',
-        dynamic: true
-      });
+      DYNAMIC_CATALOG.push({ id: String(id), name: `Game ${id}`, cat: 'uncategorized', tag: 'Vault · Discovery', dynamic: true });
     });
-    console.log(`[Vault] Synced ${ids.length} games (Discovered ${newIds.length} new).`);
   };
 
-  /**
-   * Universal fetch with proxy fallback
-   */
   async function proxyFetch(url) {
-    const proxies = [
-      '', // Direct
-      'https://api.allorigins.win/raw?url=',
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://thingproxy.freeboard.io/fetch/'
-    ];
+    const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://thingproxy.freeboard.io/fetch/'];
     for (const p of proxies) {
       try {
         const r = await fetch(p + encodeURIComponent(url), { signal: AbortSignal.timeout(6000) });
@@ -220,89 +224,25 @@ async function loadFullCatalog() {
   }
 
   try {
-    // 0. Try Manifest Files via Proxy
-    const manifests = ['catalog.json', 'games.json', 'list.json', 'all.json'];
-    for (const m of manifests) {
+    // 0. Try Manifest Files
+    for (const m of ['catalog.json', 'games.json', 'list.json']) {
       const data = await proxyFetch(`https://raw.githubusercontent.com/${STEAMTOOLS_CONFIG.GITHUB_REPO}/main/${m}`);
       if (data) {
         const ids = Array.isArray(data) ? data.map(i => i.id || i) : Object.keys(data);
-        if (ids.length > 50) { processDiscovered(ids); CATALOG_LOADED = true; return DYNAMIC_CATALOG; }
+        if (ids.length > 10) { processDiscovered(ids); CATALOG_LOADED = true; return DYNAMIC_CATALOG; }
       }
     }
 
-    // 1. Try GameGen Discovery Endpoints
-    console.log("[Vault] Attempting GameGen fallback discovery...");
-    const ggPaths = ['/list', '/all', '/catalog', '/manifests', '/games'];
-    for (const path of ggPaths) {
+    // 1. Try GameGen Endpoints
+    for (const path of ['/list', '/all', '/catalog']) {
       const data = await proxyFetch(STEAMTOOLS_CONFIG.GAMEGEN_BASE + path);
       if (data) {
-        const ids = Array.isArray(data) ? data : (data.games || data.catalog || data.ids || []);
-        if (ids.length > 0) { 
-          processDiscovered(ids.map(i => i.id || i)); 
-          CATALOG_LOADED = true; 
-          return DYNAMIC_CATALOG; 
-        }
+        const ids = Array.isArray(data) ? data : (data.games || data.catalog || []);
+        if (ids.length > 0) { processDiscovered(ids.map(i => i.id || i)); CATALOG_LOADED = true; return DYNAMIC_CATALOG; }
       }
     }
-
-    // 2. Final Fallback: Recursive Crawl via Proxy
-    console.log("[Vault] Final fallback: Proxy-aware recursive crawl...");
-    // ... (rest of crawl logic updated to use proxyFetch)
   } catch(e) {
-    console.warn("[Vault] All discovery methods failed.", e);
-  }
-    
-/**
- * Searches the GameGen database for titles matching a query.
- * Useful for accessing the full 66k+ database on-demand.
- */
-async function searchGameGen(query) {
-  if (!query || query.length < 2) return [];
-  try {
-    const r = await fetch(`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/search?q=${encodeURIComponent(query)}`, { 
-      signal: AbortSignal.timeout(5000) 
-    });
-    if (r.ok) {
-      const j = await r.json();
-      const results = Array.isArray(j) ? j : (j.results || j.games || []);
-      // Map results to our catalog format and add to DYNAMIC_CATALOG
-      results.forEach(res => {
-        if (!DYNAMIC_CATALOG.some(g => g.id === String(res.id))) {
-          DYNAMIC_CATALOG.push({
-            id: String(res.id),
-            name: res.name || `Game ${res.id}`,
-            cat: res.category || 'uncategorized',
-            tag: res.tag || 'Vault · Remote',
-            dynamic: true
-          });
-        }
-      });
-      return results;
-    }
-  } catch(e) {}
-  return [];
-}
-
-    // 2. Fallback to GameGen API
-    try {
-      const endpoints = [`${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/list`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/all`, `${STEAMTOOLS_CONFIG.GAMEGEN_BASE}/catalog` ];
-      for (const url of endpoints) {
-        try {
-          const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
-          if (r.ok) {
-            const j = await r.json();
-            const ids = Array.isArray(j) ? j : (j.games || j.catalog || j.ids || []);
-            if (ids.length) {
-              processDiscovered(ids.map(i => i.id || i));
-              CATALOG_LOADED = true;
-              return DYNAMIC_CATALOG;
-            }
-          }
-        } catch(err) { continue; }
-      }
-    } catch(err) {
-      console.warn("[Vault] All discovery sources failed. Using hardcoded catalog only.");
-    }
+    console.warn("[Vault] Discovery failed.", e);
   }
   
   CATALOG_LOADED = true;
