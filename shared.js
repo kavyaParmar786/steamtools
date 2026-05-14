@@ -248,9 +248,38 @@ async function loadFullCatalog() {
         return DYNAMIC_CATALOG;
       }
     }
-    throw new Error("GitHub Tree API failed");
+    // 2. Recursive Crawler Fallback (Crawls subdirectories if Tree API is limited)
+    console.log("[Vault] Starting recursive directory crawl...");
+    const discoveredIds = new Set();
+    
+    async function crawl(path = "") {
+      try {
+        const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents/${path}`, { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) return;
+        const items = await r.json();
+        if (!Array.isArray(items)) return;
+        
+        for (const item of items) {
+          if (item.type === 'dir') {
+            await crawl(item.path); // Recurse
+          } else if (item.name.endsWith('.lua')) {
+            const id = item.name.replace('.lua', '');
+            discoveredIds.add(id);
+          }
+        }
+      } catch(e) {}
+    }
+
+    await crawl();
+    if (discoveredIds.size > 0) {
+      processDiscovered(Array.from(discoveredIds));
+      CATALOG_LOADED = true;
+      return DYNAMIC_CATALOG;
+    }
+    
+    throw new Error("Recursive crawl found no new games");
   } catch(e) {
-    console.warn("[Vault] GitHub Discovery failed, trying GameGen fallback...", e);
+    console.warn("[Vault] GitHub Crawler failed, trying GameGen fallback...", e);
     
     // 2. Fallback to GameGen API
     try {
