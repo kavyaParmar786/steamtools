@@ -1,0 +1,8 @@
+{
+  "name": "steamtools",
+  "version": "1.0.0",
+  "description": "SteamTools Gaming Vault",
+  "scripts": {
+    "start": "serve ."
+  }
+}

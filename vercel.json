@@ -1,15 +1,12 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [
-    { "source": "/pages/(.*).html", "destination": "/$1", "permanent": true }
-  ],
   "rewrites": [
-    { "source": "/store", "destination": "/pages/store.html" },
-    { "source": "/fixes", "destination": "/pages/fixes.html" },
-    { "source": "/drops", "destination": "/pages/drops.html" },
-    { "source": "/request", "destination": "/pages/request.html" },
-    { "source": "/profile", "destination": "/pages/profile.html" },
-    { "source": "/admin-strawhat", "destination": "/pages/admin-strawhat.html" }
+    { "source": "/store", "destination": "/pages/store" },
+    { "source": "/fixes", "destination": "/pages/fixes" },
+    { "source": "/drops", "destination": "/pages/drops" },
+    { "source": "/request", "destination": "/pages/request" },
+    { "source": "/profile", "destination": "/pages/profile" },
+    { "source": "/admin-strawhat", "destination": "/pages/admin-strawhat" }
   ]
 }
