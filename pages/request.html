@@ -175,8 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
       saveRequests(requests);
 
       // --- DISCORD BOT INTEGRATION ---
-      // Uses the webhook saved in the Admin Panel, or a hardcoded fallback.
       const webhookUrl = localStorage.getItem('st_discord_webhook') || ''; 
+      const botName    = localStorage.getItem('st_bot_name') || 'Vault Requests';
+      const botAvatar  = localStorage.getItem('st_bot_avatar') || 'https://i.imgur.com/8QO9nC2.png';
       
       if (webhookUrl) {
         try {
@@ -184,8 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              username: "Vault Requests",
-              avatar_url: "https://i.imgur.com/8QO9nC2.png", // Straw Hat icon
+              username: botName,
+              avatar_url: botAvatar,
               embeds: [{
                 title: "🎮 New Game Request",
                 color: priority === 'urgent' ? 16726866 : (priority === 'high' ? 16753920 : 4906880),
