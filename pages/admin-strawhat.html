@@ -209,19 +209,68 @@
       reqLogBox.scrollTop = reqLogBox.scrollHeight;
     });
 
-    // Populate mock requests or local requests
-    function loadAdminRequests() {
+    // Populate and manage requests
+    function renderAdminRequests() {
+      reqLogBox.innerHTML = '';
       try {
         const reqs = JSON.parse(localStorage.getItem('st_requests')) || [];
-        if (reqs.length > 0) {
-          reqs.forEach(r => {
-            reqLogBox.innerHTML += `<div class="log-entry log-info">[Incoming Request] ${r.title} (AppID: ${r.appid || 'N/A'}) - Priority: ${r.priority.toUpperCase()}</div>`;
-          });
+        if (reqs.length === 0) {
+          reqLogBox.innerHTML = `<div class="log-entry log-system">No active game requests found.</div>`;
+          return;
         }
-      } catch (e) {}
-      reqLogBox.scrollTop = reqLogBox.scrollHeight;
+
+        reqs.slice().reverse().forEach((r, idx) => {
+          const actualIdx = reqs.length - 1 - idx;
+          const statusColor = r.status === 'ADDED' ? '#4ade80' : (r.status === 'REJECTED' ? '#f87171' : '#ffbd2e');
+          
+          const div = document.createElement('div');
+          div.className = 'log-entry log-info';
+          div.style.marginBottom = '12px';
+          div.style.padding = '12px';
+          div.style.background = 'rgba(255,255,255,0.03)';
+          div.style.borderRadius = '8px';
+          div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+              <span style="color:#fff; font-weight:600">${r.title} <small style="color:var(--text-30); font-weight:400; margin-left:8px">ID: ${r.appid || 'N/A'}</small></span>
+              <span style="font-size:10px; padding:2px 8px; border-radius:4px; background:${statusColor}20; color:${statusColor}; border:1px solid ${statusColor}40">${r.status}</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-30); margin-bottom:10px">${r.notes || 'No notes provided.'}</div>
+            <div style="display:flex; gap:8px">
+              <button class="status-btn" data-idx="${actualIdx}" data-status="PENDING" style="background:#ffbd2e10; color:#ffbd2e; border:1px solid #ffbd2e30">Pending</button>
+              <button class="status-btn" data-idx="${actualIdx}" data-status="ADDED" style="background:#4ade8010; color:#4ade80; border:1px solid #4ade8030">Added</button>
+              <button class="status-btn" data-idx="${actualIdx}" data-status="REJECTED" style="background:#f8717110; color:#f87171; border:1px solid #f8717130">Reject</button>
+              <button class="status-btn delete-req" data-idx="${actualIdx}" style="background:rgba(255,255,255,0.05); color:var(--text-30); border:1px solid rgba(255,255,255,0.1); margin-left:auto">Delete</button>
+            </div>
+          `;
+          reqLogBox.appendChild(div);
+        });
+
+        // Add Listeners
+        document.querySelectorAll('.status-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const idx = e.target.getAttribute('data-idx');
+            const newStatus = e.target.getAttribute('data-status');
+            const reqs = JSON.parse(localStorage.getItem('st_requests')) || [];
+            
+            if (e.target.classList.contains('delete-req')) {
+              if (confirm('Delete this request permanently?')) {
+                reqs.splice(idx, 1);
+              }
+            } else {
+              reqs[idx].status = newStatus;
+            }
+            
+            localStorage.setItem('st_requests', JSON.stringify(reqs));
+            renderAdminRequests();
+          });
+        });
+
+      } catch (e) {
+        console.error("Error rendering admin requests:", e);
+      }
+      reqLogBox.scrollTop = 0;
     }
-    loadAdminRequests();
+    renderAdminRequests();
 
     function log(msg, type = 'info') {
       const div = document.createElement('div');
