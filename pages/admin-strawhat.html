@@ -225,9 +225,10 @@
       }
     });
 
-    document.getElementById('clear-cache').addEventListener('click', () => {
+    document.getElementById('clear-cache').addEventListener('click', async () => {
       localStorage.clear();
-      log('Local storage and cache cleared.', 'warn');
+      await clearDB();
+      log('Local storage and database cache cleared.', 'warn');
     });
 
     document.body.classList.add('pt-loaded');

@@ -202,12 +202,73 @@ async function searchGameGen(query) {
   return [];
 }
 
+/* ── DATABASE ENGINE (IndexedDB) ────────────────── */
+const DB_NAME = 'StrawHatDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'vault_catalog';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function saveToDB(catalog) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put(catalog, 'current_catalog');
+    return new Promise((resolve) => {
+      tx.oncomplete = () => { db.close(); resolve(); };
+    });
+  } catch (e) { console.error("DB Save Error:", e); }
+}
+
+async function loadFromDB() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.get('current_catalog');
+    return new Promise((resolve) => {
+      request.onsuccess = () => { db.close(); resolve(request.result || []); };
+      request.onerror = () => { db.close(); resolve([]); };
+    });
+  } catch (e) { return []; }
+}
+
+async function clearDB() {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  tx.objectStore(STORE_NAME).clear();
+  return new Promise(r => tx.oncomplete = () => { db.close(); r(); });
+}
+
 async function loadFullCatalog() {
-  if (CATALOG_LOADED) return DYNAMIC_CATALOG;
+  // Check if already in memory
+  if (CATALOG_LOADED && DYNAMIC_CATALOG.length > CATALOG.length) return DYNAMIC_CATALOG;
   
   const log = (msg) => console.log(`[Vault] ${msg}`);
   const warn = (msg) => console.warn(`[Vault] ${msg}`);
 
+  // Try loading from IndexedDB first (The "DB" fix)
+  const cached = await loadFromDB();
+  if (cached && cached.length > 0) {
+    log(`Restored ${cached.length} titles from local database.`);
+    DYNAMIC_CATALOG = [...CATALOG, ...cached.filter(c => !CATALOG.some(sc => sc.id === c.id))];
+    CATALOG_LOADED = true;
+    return DYNAMIC_CATALOG;
+  }
+  
   const processDiscovered = (items) => {
     const startCount = DYNAMIC_CATALOG.length;
     const addedIds = new Set();
@@ -307,6 +368,11 @@ async function loadFullCatalog() {
   
   CATALOG_LOADED = true;
   log(`Discovery cycle complete. Total Vault Size: ${DYNAMIC_CATALOG.length}`);
+  
+  // Persist to IndexedDB
+  const toSave = DYNAMIC_CATALOG.filter(g => g.dynamic);
+  saveToDB(toSave);
+
   return DYNAMIC_CATALOG;
 }
 
