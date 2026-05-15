@@ -141,15 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     grid.innerHTML = list.map((f, i) => {
       const bannerUrl = getGameBanner(f.game);
-      const bgHtml = bannerUrl ? `<div class="fix-card-bg" style="background-image:url('${bannerUrl}')"></div>` : '';
-      
       return `
       <div class="fix-card reveal" style="transition-delay:${Math.min(i,8)*0.04}s">
-        ${bgHtml}
-        <div class="fix-header">
-          <h3>${f.title}</h3>
-          ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
-        </div>
+        ${bannerUrl ? `<div class="fix-card-banner"><img src="${bannerUrl}" alt="${f.game}"></div>` : ''}
+        <div class="fix-content">
+          <div class="fix-header">
+            <h3>${f.title}</h3>
+            ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
+          </div>
         <p>${f.desc}</p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
           <span class="fix-game-tag">${f.game}</span>
@@ -158,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="btn-apply ${applied.includes(f.title) ? 'applied' : ''}" data-title="${f.title}">
           ${applied.includes(f.title) ? '✓ Applied' : 'Apply Fix'}
         </button>
+        </div>
       </div>`;
     }).join('');
 
