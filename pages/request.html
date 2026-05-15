@@ -213,10 +213,21 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.style.color = '#4ade80';
       btn.style.border = '1px solid rgba(74,222,128,0.25)';
 
-      // Clear fields
+      // Clear fields immediately
       document.getElementById('req-title').value = '';
       document.getElementById('req-appid').value = '';
       document.getElementById('req-notes').value = '';
+
+      // Re-enable for multiple submissions after 3 seconds
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Request`;
+        btn.style.background = '';
+        btn.style.boxShadow = '';
+        btn.style.color = '';
+        btn.style.border = '';
+        document.getElementById('req-success').style.display = 'none';
+      }, 3000);
 
       renderMyRequests();
     }, 1100);
