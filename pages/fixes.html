@@ -128,8 +128,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    grid.innerHTML = list.map((f, i) => `
+    // Helper to find a banner image from the loaded catalog
+    const getGameBanner = (gameName) => {
+      if (gameName === 'Universal') return 'https://images.unsplash.com/photo-1614729939124-03290b5609ce?q=80&w=600&auto=format&fit=crop';
+      const source = typeof DYNAMIC_CATALOG !== 'undefined' && DYNAMIC_CATALOG.length > 0 ? DYNAMIC_CATALOG : (typeof CATALOG !== 'undefined' ? CATALOG : []);
+      const match = source.find(g => g.name.toLowerCase() === gameName.toLowerCase() || g.id === gameName);
+      if (match) {
+        return match.img || `https://cdn.cloudflare.steamstatic.com/steam/apps/${match.id}/header.jpg`;
+      }
+      return ''; // No banner found
+    };
+
+    grid.innerHTML = list.map((f, i) => {
+      const bannerUrl = getGameBanner(f.game);
+      const bgHtml = bannerUrl ? `<div class="fix-card-bg" style="background-image:url('${bannerUrl}')"></div>` : '';
+      
+      return `
       <div class="fix-card reveal" style="transition-delay:${Math.min(i,8)*0.04}s">
+        ${bgHtml}
         <div class="fix-header">
           <h3>${f.title}</h3>
           ${f.badge ? `<span class="badge-new">${f.badge}</span>` : ''}
@@ -142,7 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="btn-apply ${applied.includes(f.title) ? 'applied' : ''}" data-title="${f.title}">
           ${applied.includes(f.title) ? '✓ Applied' : 'Apply Fix'}
         </button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     // Attach click handlers
     document.querySelectorAll('.btn-apply:not(.applied)').forEach(btn => {

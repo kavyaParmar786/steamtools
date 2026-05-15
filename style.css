@@ -573,11 +573,14 @@ footer { position:relative; z-index:1; padding:64px 0 32px; border-top:1px solid
 
 /* ── FIXES ───────────────────────────────────── */
 .fixes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
-.fix-card { padding:28px 26px; background:var(--glass); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:var(--radius); transition:transform 0.3s var(--ease),box-shadow 0.3s,border-color 0.3s; }
+.fix-card { position:relative; overflow:hidden; padding:28px 26px; background:var(--glass); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:var(--radius); transition:transform 0.3s var(--ease),box-shadow 0.3s,border-color 0.3s; }
 .fix-card:hover { transform:translateY(-5px); border-color:rgba(255,106,0,0.2); box-shadow:0 16px 50px rgba(0,0,0,0.65); }
+.fix-card-bg { position:absolute; top:0; left:0; right:0; bottom:0; z-index:0; opacity:0.15; background-size:cover; background-position:center; transition:opacity 0.3s var(--ease); mix-blend-mode:luminosity; }
+.fix-card:hover .fix-card-bg { opacity:0.25; }
+.fix-card > * { position:relative; z-index:1; }
 .fix-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-.fix-header h3 { font-family:var(--font-head); font-size:16px; font-weight:700; color:#fff; flex:1; }
-.fix-card p { font-size:13px; color:var(--text-50); line-height:1.7; margin-bottom:20px; }
+.fix-header h3 { font-family:var(--font-head); font-size:16px; font-weight:700; color:#fff; flex:1; text-shadow:0 2px 4px rgba(0,0,0,0.5); }
+.fix-card p { font-size:13px; color:var(--text-50); line-height:1.7; margin-bottom:20px; text-shadow:0 1px 2px rgba(0,0,0,0.5); }
 .badge-new { padding:3px 9px; font-family:var(--font-mono); font-size:8px; font-weight:600; letter-spacing:1.5px; color:var(--accent); background:rgba(255,106,0,0.08); border:1px solid rgba(255,106,0,0.22); border-radius:6px; flex-shrink:0; }
 .btn-apply { padding:8px 20px; font-family:var(--font-ui); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--accent); background:rgba(255,106,0,0.09); border:1px solid rgba(255,106,0,0.22); border-radius:9px; transition:all 0.25s var(--ease); }
 .btn-apply:hover { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent; transform:translateY(-2px); box-shadow:0 6px 20px var(--accent-glow); }
