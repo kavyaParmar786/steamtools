@@ -167,12 +167,43 @@ document.addEventListener('DOMContentLoaded', () => {
     status.textContent = 'Submitting...';
     status.style.color = 'var(--text-30)';
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const requests = loadRequests();
       const now = new Date();
       const dateStr = now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }).toUpperCase();
       requests.push({ title, appid, priority, notes, status: 'PENDING', date: dateStr });
       saveRequests(requests);
+
+      // --- DISCORD BOT INTEGRATION ---
+      // Uses the webhook saved in the Admin Panel, or a hardcoded fallback.
+      const webhookUrl = localStorage.getItem('st_discord_webhook') || ''; 
+      
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: "Vault Requests",
+              avatar_url: "https://i.imgur.com/8QO9nC2.png", // Straw Hat icon
+              embeds: [{
+                title: "🎮 New Game Request",
+                color: priority === 'urgent' ? 16726866 : (priority === 'high' ? 16753920 : 4906880),
+                fields: [
+                  { name: "Title", value: title, inline: true },
+                  { name: "App ID", value: appid || "N/A", inline: true },
+                  { name: "Priority", value: priority.toUpperCase(), inline: true },
+                  { name: "Notes", value: notes || "None provided" }
+                ],
+                footer: { text: "Straw Hat Vault System" },
+                timestamp: new Date().toISOString()
+              }]
+            })
+          });
+        } catch(e) {
+          console.warn("Failed to send to Discord Bot:", e);
+        }
+      }
 
       status.textContent = '';
       document.getElementById('req-success').style.display = 'block';

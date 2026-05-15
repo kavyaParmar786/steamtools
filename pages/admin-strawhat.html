@@ -86,6 +86,28 @@
       </div>
     </div>
   </div>
+    <div class="admin-card reveal" style="margin-top:24px">
+      <div class="admin-header">
+        <div class="admin-title">Global Game Requests</div>
+        <div class="sync-status">
+          <span class="tag-dot" id="webhook-status-dot" style="background:var(--text-30)"></span> <span id="webhook-status-text">BOT DISCONNECTED</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <label style="font-family:var(--font-mono); font-size:11px; color:var(--text-50); display:block; margin-bottom:8px;">DISCORD BOT WEBHOOK URL</label>
+        <div style="display:flex; gap:12px;">
+          <input type="text" id="bot-webhook" placeholder="https://discord.com/api/webhooks/..." style="flex:1; padding:12px 16px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-family:var(--font-mono); font-size:12px; outline:none;">
+          <button id="save-webhook" class="admin-btn">Connect Bot</button>
+        </div>
+        <p style="font-size:12px; color:var(--text-30); margin-top:8px;">When connected, all user requests from the /request page will be instantly transferred to this Discord channel.</p>
+      </div>
+
+      <div class="sync-log-container" id="request-log-box" style="height:250px;">
+        <div class="log-entry log-system">Standing by for incoming game requests...</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="../shared.js"></script>
@@ -93,6 +115,52 @@
   document.addEventListener('DOMContentLoaded', () => {
     const logBox = document.getElementById('log-box');
     const syncBtn = document.getElementById('start-sync');
+    const reqLogBox = document.getElementById('request-log-box');
+    
+    // Webhook Logic
+    const webhookInput = document.getElementById('bot-webhook');
+    const webhookStatusDot = document.getElementById('webhook-status-dot');
+    const webhookStatusText = document.getElementById('webhook-status-text');
+    
+    const savedWebhook = localStorage.getItem('st_discord_webhook');
+    if (savedWebhook) {
+      webhookInput.value = savedWebhook;
+      webhookStatusDot.style.background = '#4ade80';
+      webhookStatusText.textContent = 'BOT CONNECTED';
+      webhookStatusText.style.color = '#4ade80';
+    }
+
+    document.getElementById('save-webhook').addEventListener('click', () => {
+      const url = webhookInput.value.trim();
+      if (url) {
+        localStorage.setItem('st_discord_webhook', url);
+        webhookStatusDot.style.background = '#4ade80';
+        webhookStatusText.textContent = 'BOT CONNECTED';
+        webhookStatusText.style.color = '#4ade80';
+        reqLogBox.innerHTML += `<div class="log-entry log-info">[System] Discord bot webhook linked successfully.</div>`;
+      } else {
+        localStorage.removeItem('st_discord_webhook');
+        webhookStatusDot.style.background = 'var(--text-30)';
+        webhookStatusText.textContent = 'BOT DISCONNECTED';
+        webhookStatusText.style.color = '';
+        reqLogBox.innerHTML += `<div class="log-entry log-warn">[System] Discord bot disconnected.</div>`;
+      }
+      reqLogBox.scrollTop = reqLogBox.scrollHeight;
+    });
+
+    // Populate mock requests or local requests
+    function loadAdminRequests() {
+      try {
+        const reqs = JSON.parse(localStorage.getItem('st_requests')) || [];
+        if (reqs.length > 0) {
+          reqs.forEach(r => {
+            reqLogBox.innerHTML += `<div class="log-entry log-info">[Incoming Request] ${r.title} (AppID: ${r.appid || 'N/A'}) - Priority: ${r.priority.toUpperCase()}</div>`;
+          });
+        }
+      } catch (e) {}
+      reqLogBox.scrollTop = reqLogBox.scrollHeight;
+    }
+    loadAdminRequests();
 
     function log(msg, type = 'info') {
       const div = document.createElement('div');
