@@ -106,13 +106,21 @@
             <input type="text" id="bot-name" placeholder="Vault Requests" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-family:var(--font-mono); font-size:12px; outline:none;">
           </div>
           <div>
-            <label style="font-family:var(--font-mono); font-size:11px; color:var(--text-50); display:block; margin-bottom:8px;">BOT AVATAR URL</label>
-            <input type="text" id="bot-avatar" placeholder="https://..." style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-family:var(--font-mono); font-size:12px; outline:none;">
+            <label style="font-family:var(--font-mono); font-size:11px; color:var(--text-50); display:block; margin-bottom:8px;">BOT AVATAR (UPLOAD)</label>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <label for="bot-avatar-file" class="admin-btn" style="flex:1; text-align:center; font-size:11px; padding:10px;">Choose File</label>
+              <input type="file" id="bot-avatar-file" accept="image/*" style="display:none;">
+              <div id="avatar-preview" style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                <span style="font-size:10px; color:var(--text-30)">N/A</span>
+              </div>
+              <button id="clear-avatar" class="admin-btn" style="border-color:var(--text-30); color:var(--text-30); padding:10px;">✕</button>
+            </div>
+            <input type="hidden" id="bot-avatar-data">
           </div>
         </div>
 
         <button id="save-webhook" class="admin-btn" style="width:100%">Save Bot Configuration</button>
-        <p style="font-size:12px; color:var(--text-30); margin-top:8px;">Changes will take effect immediately for all new game requests.</p>
+        <p style="font-size:12px; color:var(--text-30); margin-top:8px;">Note: For the avatar to show in Discord, please set it directly in your Discord Webhook settings first. This upload is for your admin panel preview.</p>
       </div>
 
       <div class="sync-log-container" id="request-log-box" style="height:250px;">
@@ -132,7 +140,9 @@
     // Webhook Logic
     const webhookInput = document.getElementById('bot-webhook');
     const nameInput = document.getElementById('bot-name');
-    const avatarInput = document.getElementById('bot-avatar');
+    const avatarData = document.getElementById('bot-avatar-data');
+    const avatarFile = document.getElementById('bot-avatar-file');
+    const avatarPreview = document.getElementById('avatar-preview');
     const webhookStatusDot = document.getElementById('webhook-status-dot');
     const webhookStatusText = document.getElementById('webhook-status-text');
     
@@ -142,7 +152,30 @@
 
     if (savedWebhook) webhookInput.value = savedWebhook;
     if (savedName) nameInput.value = savedName;
-    if (savedAvatar) avatarInput.value = savedAvatar;
+    if (savedAvatar) {
+      avatarData.value = savedAvatar;
+      avatarPreview.innerHTML = `<img src="${savedAvatar}" style="width:100%; height:100%; object-fit:cover;">`;
+    }
+
+    // Handle File Selection
+    avatarFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target.result;
+          avatarData.value = base64;
+          avatarPreview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover;">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('clear-avatar').addEventListener('click', () => {
+      avatarData.value = '';
+      avatarPreview.innerHTML = `<span style="font-size:10px; color:var(--text-30)">N/A</span>`;
+      localStorage.removeItem('st_bot_avatar');
+    });
 
     if (savedWebhook) {
       webhookStatusDot.style.background = '#4ade80';
@@ -153,7 +186,7 @@
     document.getElementById('save-webhook').addEventListener('click', () => {
       const url = webhookInput.value.trim();
       const name = nameInput.value.trim();
-      const avatar = avatarInput.value.trim();
+      const avatar = avatarData.value;
 
       if (url) {
         localStorage.setItem('st_discord_webhook', url);

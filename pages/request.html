@@ -84,6 +84,17 @@
             <label>Notes</label>
             <textarea class="t-input" id="req-notes" placeholder="Specific version, DLC, language requirements..." style="resize:vertical;min-height:80px"></textarea>
           </div>
+          <div class="input-row">
+            <label>Attachment (Optional)</label>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <label for="req-file" class="t-input" style="flex:1; cursor:pointer; display:flex; align-items:center; gap:8px; opacity:0.7">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <span id="file-name-display">Upload Screenshot or File</span>
+              </label>
+              <input type="file" id="req-file" style="display:none;">
+              <button id="clear-file" style="background:none; border:none; color:var(--text-30); cursor:pointer; display:none;">✕</button>
+            </div>
+          </div>
 
           <div class="t-divider"></div>
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -148,6 +159,25 @@ function renderMyRequests() {
 
 document.addEventListener('DOMContentLoaded', () => {
   renderMyRequests();
+  const fileInput = document.getElementById('req-file');
+  const fileNameDisplay = document.getElementById('file-name-display');
+  const clearFileBtn = document.getElementById('clear-file');
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      fileNameDisplay.textContent = file.name;
+      fileNameDisplay.style.opacity = '1';
+      clearFileBtn.style.display = 'block';
+    }
+  });
+
+  clearFileBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    fileNameDisplay.textContent = 'Upload Screenshot or File';
+    fileNameDisplay.style.opacity = '0.7';
+    clearFileBtn.style.display = 'none';
+  });
 
   document.getElementById('submit-req').addEventListener('click', () => {
     const title    = document.getElementById('req-title').value.trim();
@@ -155,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const priority = document.getElementById('req-priority').value;
     const notes    = document.getElementById('req-notes').value.trim();
     const status   = document.getElementById('req-status');
+    const attachment = fileInput.files[0];
 
     if (!title) {
       status.textContent = '⚠ Game title is required.';
@@ -176,11 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // --- DISCORD BOT INTEGRATION ---
       const webhookUrl = localStorage.getItem('st_discord_webhook') || ''; 
-      const botName    = localStorage.getItem('st_bot_name') || 'Vault Requests';
-      const botAvatar  = localStorage.getItem('st_bot_avatar') || 'https://i.imgur.com/8QO9nC2.png';
+      const botName    = localStorage.getItem('st_bot_name') || '';
+      const botAvatar  = localStorage.getItem('st_bot_avatar') || '';
       
       if (webhookUrl) {
         try {
+          const formData = new FormData();
           const payload = {
             embeds: [{
               title: "🎮 New Game Request",
@@ -196,19 +228,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }]
           };
 
-          // Only override name/pfp if provided in Admin Panel
-          if (localStorage.getItem('st_bot_name')) payload.username = localStorage.getItem('st_bot_name');
-          if (localStorage.getItem('st_bot_avatar')) payload.avatar_url = localStorage.getItem('st_bot_avatar');
+          if (botName) payload.username = botName;
+          if (botAvatar) payload.avatar_url = botAvatar;
+
+          formData.append('payload_json', JSON.stringify(payload));
+          if (attachment) {
+            formData.append('file[0]', attachment);
+          }
 
           await fetch(webhookUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: formData
           });
         } catch(e) {
           console.warn("Failed to send to Discord Bot:", e);
         }
       }
+
+      // Clear fields immediately
+      document.getElementById('req-title').value = '';
+      document.getElementById('req-appid').value = '';
+      document.getElementById('req-notes').value = '';
+      fileInput.value = '';
+      fileNameDisplay.textContent = 'Upload Screenshot or File';
+      fileNameDisplay.style.opacity = '0.7';
+      clearFileBtn.style.display = 'none';
 
       status.textContent = '';
       document.getElementById('req-success').style.display = 'block';
@@ -217,11 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.style.boxShadow = 'none';
       btn.style.color = '#4ade80';
       btn.style.border = '1px solid rgba(74,222,128,0.25)';
-
-      // Clear fields immediately
-      document.getElementById('req-title').value = '';
-      document.getElementById('req-appid').value = '';
-      document.getElementById('req-notes').value = '';
 
       // Re-enable for multiple submissions after 3 seconds
       setTimeout(() => {
