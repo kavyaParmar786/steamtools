@@ -4,7 +4,8 @@ const STEAMTOOLS_CONFIG = {
   GAMEGEN_KEY:  'mg_89fab80a0e6c4949b0c169de799f4499',
   GAMEGEN_BASE: 'https://gamegen.lol/api/mg_89fab80a0e6c4949b0c169de799f4499',
   STEAM_IMG:    'https://cdn.cloudflare.steamstatic.com/steam/apps',
-  GITHUB_REPO:  'SteamTools-Team/GameList',
+  GITHUB_REPO:  'steamtoolsbot-dhyey/filebase',
+  GITHUB_PAT:   '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',
   DISCORD_ID:   '1263113862754545795'  // Straw Hat Discord server ID
 };
 
@@ -62,11 +63,11 @@ const fixes = [
   {title:'DirectX 12 Optimization Patch',   desc:'Improves GPU utilization on NVIDIA 30/40-series and AMD RDNA2+. Resolves shader compilation stuttering.',  badge:'NEW',      cat:'performance',game:'Universal',        version:'v3.1'},
   {title:'Elden Ring 60 FPS Unlock',        desc:'Community framerate unlocker with proper frametime management for smooth high-refresh-rate gameplay.',       badge:'HOT',      cat:'performance',game:'Elden Ring',        version:'v2.4'},
   {title:'Cyberpunk 2077 Memory Leak Fix',  desc:'Resolves crash-on-extended-play on Intel 12th/13th gen processors. Stable for sessions over 3 hours.',     badge:'',         cat:'crash',      game:'Cyberpunk 2077',   version:'v1.8'},
-  {title:'RDR2 Vulkan Crash Fix',           desc:'Patches the Vulkan backend crash triggered on AMD GPUs when entering dense foliage areas.',                 badge:'',         cat:'crash',      game:'Red Dead Redemption 2',version:'v2.0'},
-  {title:"Baldur's Gate 3 Save Repair",     desc:"Fixes corrupted save files caused by the Act 2 crossfade bug. Restores progress without rollback.",         badge:'VERIFIED', cat:'crash',      game:"Baldur's Gate 3",  version:'v1.3'},
+  {title:'RDR2 Vulkan Crash Fix',           desc:'Patches the Vulkan backend crash triggered on AMD GPUs when entering dense foliage areas.',                badge:'',         cat:'crash',      game:'Red Dead Redemption 2',version:'v2.0'},
+  {title:"Baldur's Gate 3 Save Repair",     desc:"Fixes corrupted save files caused by the Act 2 crossfade bug. Restores progress without rollback.",        badge:'VERIFIED', cat:'crash',      game:"Baldur's Gate 3",  version:'v1.3'},
   {title:'Universal Audio Fix',             desc:'Restores surround sound output for games using deprecated XAudio2 on Windows 11 22H2+.',                   badge:'NEW',      cat:'audio',      game:'Universal',        version:'v4.0'},
   {title:'Rust Anti-Stutter Patch',         desc:'Eliminates micro-stuttering in Rust by optimizing garbage collection and asset streaming pipeline.',         badge:'HOT',      cat:'performance',game:'Rust',             version:'v1.6'},
-  {title:'HELLDIVERS 2 Crash-on-Join Fix',  desc:'Resolves the frequent crash when joining multiplayer sessions via quickplay.',                              badge:'NEW',      cat:'crash',      game:'HELLDIVERS 2',     version:'v1.1'},
+  {title:'HELLDIVERS 2 Crash-on-Join Fix',  desc:'Resolves the frequent crash when joining multiplayer sessions via quickplay.',                             badge:'NEW',      cat:'crash',      game:'HELLDIVERS 2',     version:'v1.1'},
   {title:'Valheim Audio Desync Fix',        desc:'Fixes positional audio desyncing after extended play sessions and echo in underground biomes.',             badge:'',         cat:'audio',      game:'Valheim',          version:'v2.2'},
 ];
 
@@ -134,7 +135,10 @@ async function fetchGameGenLink(appId) {
     if (j.success && j.manifest) return j.manifest.downloadUrl;
   } catch(e) {}
   try {
-    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents/${appId}.lua`, { signal: AbortSignal.timeout(6000) });
+    const r = await fetch(`https://api.github.com/repos/${STEAMTOOLS_CONFIG.GITHUB_REPO}/contents/${appId}.lua`, { 
+      headers: { 'Authorization': `token ${STEAMTOOLS_CONFIG.GITHUB_PAT}` },
+      signal: AbortSignal.timeout(6000) 
+    });
     if (r.ok) { const j = await r.json(); return j.download_url; }
   } catch(e) {}
   return null;
@@ -202,57 +206,6 @@ async function searchGameGen(query) {
   return [];
 }
 
-/* ── DATABASE ENGINE (IndexedDB) ────────────────── */
-const DB_NAME = 'StrawHatDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'vault_catalog';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    request.onsuccess = (e) => resolve(e.target.result);
-    request.onerror = (e) => reject(e.target.error);
-  });
-}
-
-async function saveToDB(catalog) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    store.put(catalog, 'current_catalog');
-    return new Promise((resolve) => {
-      tx.oncomplete = () => { db.close(); resolve(); };
-    });
-  } catch (e) { console.error("DB Save Error:", e); }
-}
-
-async function loadFromDB() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get('current_catalog');
-    return new Promise((resolve) => {
-      request.onsuccess = () => { db.close(); resolve(request.result || []); };
-      request.onerror = () => { db.close(); resolve([]); };
-    });
-  } catch (e) { return []; }
-}
-
-async function clearDB() {
-  const db = await openDB();
-  const tx = db.transaction(STORE_NAME, 'readwrite');
-  tx.objectStore(STORE_NAME).clear();
-  return new Promise(r => tx.oncomplete = () => { db.close(); r(); });
-}
-
 async function loadFullCatalog() {
   // Check if already in memory
   if (CATALOG_LOADED && DYNAMIC_CATALOG.length > CATALOG.length) return DYNAMIC_CATALOG;
@@ -260,15 +213,6 @@ async function loadFullCatalog() {
   const log = (msg) => console.log(`[Vault] ${msg}`);
   const warn = (msg) => console.warn(`[Vault] ${msg}`);
 
-  // Try loading from IndexedDB first (The "DB" fix)
-  const cached = await loadFromDB();
-  if (cached && cached.length > 0) {
-    log(`Restored ${cached.length} titles from local database.`);
-    DYNAMIC_CATALOG = [...CATALOG, ...cached.filter(c => !CATALOG.some(sc => sc.id === c.id))];
-    CATALOG_LOADED = true;
-    return DYNAMIC_CATALOG;
-  }
-  
   const processDiscovered = (items) => {
     const startCount = DYNAMIC_CATALOG.length;
     const addedIds = new Set();
@@ -318,12 +262,16 @@ async function loadFullCatalog() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s HARD limit
 
+    // Inject GitHub PAT for raw.githubusercontent.com or api.github.com
+    const isGithub = url.includes('github.com') || url.includes('githubusercontent.com');
+    const headers = isGithub ? { 'Authorization': `token ${STEAMTOOLS_CONFIG.GITHUB_PAT}` } : {};
+
     try {
       // Race all proxies simultaneously
       return await Promise.any(proxies.map(async (p, idx) => {
         try {
           const fetchUrl = p.includes('?') ? p + encodeURIComponent(url) : p + url;
-          const r = await fetch(fetchUrl, { signal: controller.signal });
+          const r = await fetch(fetchUrl, { signal: controller.signal, headers });
           if (r.ok) {
             const data = await r.json();
             log(`Source ${idx} responded first for ${url.split('/').pop()}`);
@@ -369,10 +317,6 @@ async function loadFullCatalog() {
   CATALOG_LOADED = true;
   log(`Discovery cycle complete. Total Vault Size: ${DYNAMIC_CATALOG.length}`);
   
-  // Persist to IndexedDB
-  const toSave = DYNAMIC_CATALOG.filter(g => g.dynamic);
-  saveToDB(toSave);
-
   return DYNAMIC_CATALOG;
 }
 
@@ -429,7 +373,6 @@ async function openGameModal(appId) {
   <div class="game-modal" id="gm-${appId}">
     <button class="modal-close" onclick="this.closest('.game-modal-overlay').remove()">✕</button>
 
-    <!-- HERO BANNER -->
     <div class="modal-hero">
       <div class="modal-hero-bg" id="mhbg-${appId}"
         style="background-image:url('${S}/${appId}/library_hero.jpg')">
@@ -445,10 +388,8 @@ async function openGameModal(appId) {
       </div>
     </div>
 
-    <!-- CONTENT -->
     <div class="modal-content">
 
-      <!-- MAIN COLUMN -->
       <div class="modal-main">
         <div class="modal-title-row">
           <div>
@@ -457,13 +398,11 @@ async function openGameModal(appId) {
           </div>
         </div>
 
-        <!-- TAGS - filled by Steam data -->
         <div class="modal-tags" id="mtags-${appId}">
           <span class="modal-tag modal-skeleton skel-block" style="width:60px;height:20px">&nbsp;</span>
           <span class="modal-tag modal-skeleton skel-block" style="width:80px;height:20px">&nbsp;</span>
         </div>
 
-        <!-- REVIEW SCORE -->
         <div class="modal-review-row" id="mrev-${appId}">
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <div class="review-score-big modal-skeleton skel-block" style="width:80px;height:48px;border-radius:8px">&nbsp;</div>
@@ -475,7 +414,6 @@ async function openGameModal(appId) {
           </div>
         </div>
 
-        <!-- DESCRIPTION -->
         <div class="modal-section-title">About This Game</div>
         <div class="modal-desc-text" id="mdesc-${appId}">
           <div class="modal-skeleton skel-block" style="height:14px;margin-bottom:8px;border-radius:4px"></div>
@@ -483,7 +421,6 @@ async function openGameModal(appId) {
           <div class="modal-skeleton skel-block" style="height:14px;width:75%;border-radius:4px"></div>
         </div>
 
-        <!-- MEDIA -->
         <div class="modal-section-title" style="margin-top:32px">Media</div>
         <div class="media-tabs">
           <div class="media-tab active" onclick="switchMediaTab(this,'screenshots','${appId}')">Screenshots</div>
@@ -505,7 +442,6 @@ async function openGameModal(appId) {
           </div>
         </div>
 
-        <!-- SYSTEM REQUIREMENTS -->
         <div class="modal-section-title" style="margin-top:36px">System Requirements</div>
         <div class="sysreq-grid" id="msysreq-${appId}">
           <div class="sysreq-card">
@@ -523,9 +459,7 @@ async function openGameModal(appId) {
         </div>
       </div>
 
-      <!-- SIDEBAR -->
       <div class="modal-sidebar-wrap">
-        <!-- CTA BOX -->
         <div class="modal-cta-box">
           <div class="modal-cta-cover">
             <img src="${S}/${appId}/library_600x900_2x.jpg" alt="${game.name}"
@@ -550,7 +484,6 @@ async function openGameModal(appId) {
           </div>
         </div>
 
-        <!-- META INFO -->
         <div class="sidebar-meta-block" id="mmeta-${appId}">
           <div class="sidebar-meta-title">Game Info</div>
           <div class="modal-skeleton skel-block" style="height:36px;border-radius:6px;margin-bottom:8px"></div>
@@ -558,7 +491,6 @@ async function openGameModal(appId) {
           <div class="modal-skeleton skel-block" style="height:36px;border-radius:6px"></div>
         </div>
 
-        <!-- STEAM LINK -->
         <a href="https://store.steampowered.com/app/${appId}" target="_blank" class="sidebar-steam-link">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39l3.12-5.4c-.4-.12-.77-.29-1.11-.52a4.15 4.15 0 01-1.64-5.38 4.15 4.15 0 013.69-2.28l3.26-5.65A12 12 0 0112 0zm4.09 18.14a4.15 4.15 0 01-5.53-5.54l-3.1 5.38A11.97 11.97 0 0012 24c2.58 0 4.97-.82 6.94-2.2l-2.85-3.66zm2.29-3.97l-3.24-5.61c1.38.47 2.48 1.47 3.07 2.79a4.13 4.13 0 01.17 2.82z"/>
@@ -711,8 +643,6 @@ async function openGameModal(appId) {
         <div class="sidebar-meta-row"><span class="sidebar-meta-key">App ID</span><span class="sidebar-meta-val" style="font-family:var(--font-mono);font-size:11px">${appId}</span></div>`;
     }
   }
-
-
 
   // ── Download button ──
   const dlBtn  = document.getElementById(`dlbtn-${appId}`);
