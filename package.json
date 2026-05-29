@@ -4,5 +4,14 @@
   "description": "SteamTools Gaming Vault",
   "scripts": {
     "start": "serve ."
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "cors": "^2.8.6",
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "googleapis": "^173.0.0",
+    "mongoose": "^9.6.3"
   }
 }
