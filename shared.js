@@ -6,7 +6,7 @@ const STEAMTOOLS_CONFIG = {
   GITHUB_PAT:  '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',
   DISCORD_ID:  '1263113862754545795',
   // Discord OAuth — fill in your own app's client_id from discord.com/developers
-  DISCORD_CLIENT_ID: '1263113862754545795',
+  DISCORD_CLIENT_ID: '1494980898041368596',
   DISCORD_REDIRECT:  window.location.origin + '/pages/profile.html'
 };
 
